@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 project(heatshrink C)
 
 add_library(${PROJECT_NAME} heatshrink_decoder.c heatshrink_encoder.c)
+add_library(${PROJECT_NAME}_dynalloc heatshrink_decoder.c heatshrink_encoder.c)
 
 find_library(MATH_LIBRARY m) # Business as usual
 if(MATH_LIBRARY)
@@ -10,6 +11,16 @@ if(MATH_LIBRARY)
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC $<INSTALL_INTERFACE:include>)
+target_include_directories(${PROJECT_NAME}_dynalloc PUBLIC $<INSTALL_INTERFACE:include>)
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC HEATSHRINK_DYNAMIC_ALLOC=0)
+target_compile_definitions(${PROJECT_NAME}_dynalloc PUBLIC HEATSHRINK_DYNAMIC_ALLOC=1)
+
+if (UNIX)
+  add_executable(${PROJECT_NAME}_cmd heatshrink.c)
+  target_link_libraries(${PROJECT_NAME}_cmd ${PROJECT_NAME}_dynalloc)
+  set_target_properties(${PROJECT_NAME}_cmd PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
+endif ()
 
 # Installation and export:
 
@@ -21,7 +32,12 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
 )
 
-install(TARGETS ${PROJECT_NAME}
+set(_exported_targets ${PROJECT_NAME} ${PROJECT_NAME}_dynalloc)
+if (UNIX)
+  list(APPEND _exported_targets ${PROJECT_NAME}_cmd)
+endif ()
+
+install(TARGETS ${_exported_targets}
         EXPORT ${PROJECT_NAME}Targets
 )
 
