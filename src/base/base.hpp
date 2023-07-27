@@ -1,15 +1,12 @@
 #ifndef BASE_HPP
 #define BASE_HPP
 
-#include <libbgcode.hpp>
-
 #include "base/export.h"
-
-#include <memory>
+#include "core/core.hpp"
 
 namespace bgcode { namespace base {
 
-BGCODE_BASE_EXPORT std::unique_ptr<AbstractInterface> create_abstract_interface();
+BGCODE_BASE_EXPORT int foo();
 
 }} // bgcode::core
 

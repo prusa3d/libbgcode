@@ -9,4 +9,11 @@ target_include_directories(test_common INTERFACE ${CMAKE_CURRENT_LIST_DIR})
 target_link_libraries(test_common INTERFACE Catch2::Catch2)
 
 add_subdirectory(core)
-add_subdirectory(base)
+
+if (${PROJECT_NAME}_BUILD_COMPONENT_Base)
+    add_subdirectory(base)
+endif()
+
+if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
+    add_subdirectory(convert)
+endif ()

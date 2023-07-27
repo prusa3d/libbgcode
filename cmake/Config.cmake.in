@@ -2,14 +2,22 @@
 
 include(CMakeFindDependencyMacro)
 
-set(_@PROJECT_NAME@_supported_components Core Base)
+set(_@PROJECT_NAME@_supported_components Core Base Convert)
 
 set(Core_deps "@Core_DOWNSTREAM_DEPS@")
 set(Base_deps "@Base_DOWNSTREAM_DEPS@")
+set(Convert_deps "@Convert_DOWNSTREAM_DEPS@")
 
 set(_comps ${@PROJECT_NAME@_FIND_COMPONENTS})
-list(PREPEND _comps Core)
-list(REMOVE_DUPLICATES _comps)
+if (_comps)
+  if ("Convert" IN_LIST _comps)
+    list(PREPEND _comps Base)
+  endif ()
+  list(PREPEND _comps Core)
+  list(REMOVE_DUPLICATES _comps)
+else() # empty list of components, include all
+  set(_comps ${_@PROJECT_NAME@_supported_components})
+endif ()
 
 foreach(_comp ${_comps})
   if (NOT _comp IN_LIST _@PROJECT_NAME@_supported_components)

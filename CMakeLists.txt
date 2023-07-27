@@ -11,55 +11,106 @@ string(REPLACE "lib" "" _libname ${_libname})
 
 option(${PROJECT_NAME}_BUILD_TESTS "Build unit tests" ON)
 
-set(heatshrink_VERSION 0.4)
-find_package(heatshrink ${heatshrink_VERSION} REQUIRED)
+option(${PROJECT_NAME}_BUILD_COMPONENT_Base "Include Base component in the library" ON)
+
+if (NOT CMAKE_DEBUG_POSTFIX)
+    set(CMAKE_DEBUG_POSTFIX "d")
+endif ()
+
+include(CMakeDependentOption)
+cmake_dependent_option(${PROJECT_NAME}_BUILD_COMPONENT_Convert "Include Convert component in the library" ON 
+                       "${PROJECT_NAME}_BUILD_COMPONENT_Base" OFF)
+
+set(_selected_components "Core")
+set(_selected_libs "${_libname}_core")
 
 set(Core_DOWNSTREAM_DEPS "")
-if (NOT BUILD_SHARED_LIBS)
-    list(APPEND Core_DOWNSTREAM_DEPS "heatshrink_${heatshrink_VERSION}")
-    # append all the libs that are required privately for Core
-endif ()
+set(Base_DOWNSTREAM_DEPS "")
+set(Convert_DOWNSTREAM_DEPS "")
+if (${PROJECT_NAME}_BUILD_COMPONENT_Base)
+    set(heatshrink_VERSION 0.4)
+    set(ZLIB_VERSION 1.0)
+    find_package(heatshrink ${heatshrink_VERSION} REQUIRED)
+    find_package(ZLIB ${ZLIB_VERSION} REQUIRED)
+    
+    if (NOT BUILD_SHARED_LIBS)
+        list(APPEND Base_DOWNSTREAM_DEPS "heatshrink_${heatshrink_VERSION}")
+        list(APPEND Base_DOWNSTREAM_DEPS "ZLIB_${ZLIB_VERSION}")
+        # append all the libs that are required privately for Core
+    endif ()
+endif()
+
+# Create an export header
+include(GenerateExportHeader)
 
 # Core component
 add_library(${_libname}_core
     src/core/core.cpp
     src/core/core.hpp
-    include/libbgcode.hpp
     # Add more source files here if needed
+)
+
+generate_export_header(${_libname}_core
+    EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/core/export.h
 )
 
 target_include_directories(${_libname}_core
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
         $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(${_libname}_core PRIVATE heatshrink::heatshrink)
+if (${PROJECT_NAME}_BUILD_COMPONENT_Base)
+    # Base component
+    add_library(${_libname}_base
+        src/base/base.cpp
+        src/base/base.hpp
+        # Add more source files here if needed
+    )
 
-# Base component (rename if needed)
-add_library(${_libname}_base
-    src/base/base.cpp
-    src/base/base.hpp
-    include/libbgcode.hpp
-    # Add more source files here if needed
-)
+    generate_export_header(${_libname}_base
+        EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/base/export.h
+    )
 
-target_include_directories(${_libname}_base
-    PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-        $<INSTALL_INTERFACE:include>
-)
+    target_include_directories(${_libname}_base
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+            $<INSTALL_INTERFACE:include>
+    )
 
-target_link_libraries(${_libname}_base PRIVATE ${_libname}_core)
+    target_link_libraries(${_libname}_base PRIVATE heatshrink::heatshrink ZLIB::ZLIB)
+    target_link_libraries(${_libname}_base PUBLIC ${_libname}_core)
 
-set(Base_DOWNSTREAM_DEPS "")
-if (NOT BUILD_SHARED_LIBS)
-    # list(APPEND CORE_DOWNSTREAM_DEPS "heatshrink_${heatshrink_VERSION}")
-    # append all the libs that are required privately for Core
+    list(APPEND _selected_components Base)
+    list(APPEND _selected_libs ${_libname}_base)
+endif ()
+
+if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
+    # Convert component
+    add_library(${_libname}_convert
+        src/convert/convert.cpp
+        src/convert/convert.hpp
+        # Add more source files here if needed
+    )
+
+    generate_export_header(${_libname}_convert
+        EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/convert/export.h
+    )
+
+    target_include_directories(${_libname}_convert
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+            $<INSTALL_INTERFACE:include>
+    )
+
+    target_link_libraries(${_libname}_convert PUBLIC  ${_libname}_core)
+    target_link_libraries(${_libname}_convert PRIVATE ${_libname}_base)
+
+    list(APPEND _selected_components Convert)
+    list(APPEND _selected_libs ${_libname}_convert)
 endif ()
 
 # Set the version of the project
@@ -67,51 +118,46 @@ endif ()
 # target_compile_definitions(Core PRIVATE VERSION_MAJOR=${PROJECT_VERSION_MAJOR} VERSION_MINOR=${PROJECT_VERSION_MINOR})
 
 add_library(${_libname} INTERFACE)
-target_link_libraries(${_libname} INTERFACE ${_libname}_core ${_libname}_base)
+target_link_libraries(${_libname} INTERFACE ${_selected_libs})
 
 if(${PROJECT_NAME}_BUILD_TESTS)
     enable_testing ()
     add_subdirectory(tests)
 endif()
 
-# Create an export header
-include(GenerateExportHeader)
-generate_export_header(${_libname}_core
-    EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/core/export.h
-)
-
-generate_export_header(${_libname}_base
-    EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/base/export.h
-)
-
-# Install targets and headers
-install(TARGETS ${_libname}_core
-    EXPORT ${PROJECT_NAME}CoreTargets
-    INCLUDES DESTINATION include/${PROJECT_NAME}
-)
-
-install(TARGETS ${_libname}_base ${_libname}
-    EXPORT ${PROJECT_NAME}BaseTargets
-    INCLUDES DESTINATION include/${PROJECT_NAME}
-)
-
-install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
-install(FILES src/core/core.hpp src/base/base.hpp DESTINATION include/)
-install(FILES
- ${PROJECT_BINARY_DIR}/core/export.h DESTINATION include/${PROJECT_NAME}/core/
-)
-install(FILES
- ${PROJECT_BINARY_DIR}/base/export.h DESTINATION include/${PROJECT_NAME}/base/
-)
-
 # Create and install the CMake config script
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
-
 set(CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+
 set(version_config "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake")
 set(project_config "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake")
 set(namespace "${PROJECT_NAME}::")
+
+list(GET _selected_components -1 _highest_comp)
+foreach(_comp ${_selected_components})
+    # Install targets and headers
+    string(TOLOWER ${_comp} _comp_lower)
+    set(_export_targets ${_libname}_${_comp_lower})
+    if (_comp STREQUAL _highest_comp)
+        list(APPEND _export_targets ${_libname})
+    endif ()
+
+    install(TARGETS ${_export_targets}
+        EXPORT ${PROJECT_NAME}${_comp}Targets
+        INCLUDES DESTINATION include/${PROJECT_NAME}
+    )
+
+    install(FILES src/${_comp_lower}/${_comp_lower}.hpp DESTINATION include/${PROJECT_NAME}/${_comp_lower})
+    install(FILES
+        ${PROJECT_BINARY_DIR}/${_comp_lower}/export.h DESTINATION include/${PROJECT_NAME}/${_comp_lower}/
+    )
+    install(
+        EXPORT "${PROJECT_NAME}${_comp}Targets"
+        NAMESPACE "${namespace}"
+        DESTINATION "${CONFIG_INSTALL_DIR}"
+    )
+endforeach()
 
 write_basic_package_version_file(
     "${version_config}"
@@ -128,17 +174,5 @@ configure_package_config_file(
 
 install(
     FILES "${project_config}" "${version_config}"
-    DESTINATION "${CONFIG_INSTALL_DIR}"
-)
-
-install(
-    EXPORT "${PROJECT_NAME}CoreTargets"
-    NAMESPACE "${namespace}"
-    DESTINATION "${CONFIG_INSTALL_DIR}"
-)
-
-install(
-    EXPORT "${PROJECT_NAME}BaseTargets"
-    NAMESPACE "${namespace}"
     DESTINATION "${CONFIG_INSTALL_DIR}"
 )

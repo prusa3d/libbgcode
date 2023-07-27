@@ -2,8 +2,7 @@
 
 #include "base/base.hpp"
 
-TEST_CASE("Example core test", "[Core]")
+TEST_CASE("Example base test", "[Base]")
 {
-    auto iface = bgcode::base::create_abstract_interface();
-    REQUIRE(iface->foo() == 2);
+    REQUIRE(bgcode::base::foo() == bgcode::core::foo() + 1);
 }
