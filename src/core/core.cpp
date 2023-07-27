@@ -1,11 +1,18 @@
-#include "core/export.h"
+#include "core.hpp"
 
-namespace bgcode {
+#include "libbgcode.hpp"
 
-extern "C" {
+namespace bgcode { namespace core {
 
-CORE_EXPORT int foo() { return 0; }
+class CoreImplementation: public AbstractInterface {
+public:
+    int foo() override { return 1; }
+};
 
+BGCODE_CORE_EXPORT std::unique_ptr<AbstractInterface> create_abstract_interface()
+{
+    return std::make_unique<CoreImplementation>();
 }
 
-}
+} // namespace core
+} // namespace bgcode

@@ -4,3 +4,4 @@ project(BinGCode_Deps)
 include(${PROJECT_SOURCE_DIR}/../cmake/modules/AddCMakeProject.cmake)
 
 include(heatshrink/heatshrink.cmake)
+include(Catch2/Catch2.cmake)

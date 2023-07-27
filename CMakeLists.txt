@@ -5,6 +5,12 @@ project(LibBGCode VERSION 0.1)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(_libname ${PROJECT_NAME})
+string(TOLOWER ${_libname} _libname)
+string(REPLACE "lib" "" _libname ${_libname})
+
+option(${PROJECT_NAME}_BUILD_TESTS "Build unit tests" ON)
+
 set(heatshrink_VERSION 0.4)
 find_package(heatshrink ${heatshrink_VERSION} REQUIRED)
 
@@ -15,34 +21,40 @@ if (NOT BUILD_SHARED_LIBS)
 endif ()
 
 # Core component
-add_library(Core
+add_library(${_libname}_core
     src/core/core.cpp
+    src/core/core.hpp
+    include/libbgcode.hpp
     # Add more source files here if needed
 )
 
-target_include_directories(Core
+target_include_directories(${_libname}_core
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
         $<INSTALL_INTERFACE:include>
 )
 
-target_include_directories(Core PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-
-target_link_libraries(Core PRIVATE heatshrink::heatshrink)
+target_link_libraries(${_libname}_core PRIVATE heatshrink::heatshrink)
 
 # Base component (rename if needed)
-add_library(Base
+add_library(${_libname}_base
     src/base/base.cpp
+    src/base/base.hpp
+    include/libbgcode.hpp
     # Add more source files here if needed
 )
 
-target_include_directories(Base
+target_include_directories(${_libname}_base
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
         $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(Base PRIVATE Core)
+target_link_libraries(${_libname}_base PRIVATE ${_libname}_core)
 
 set(Base_DOWNSTREAM_DEPS "")
 if (NOT BUILD_SHARED_LIBS)
@@ -54,31 +66,37 @@ endif ()
 # target_sources(Core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/version.h)
 # target_compile_definitions(Core PRIVATE VERSION_MAJOR=${PROJECT_VERSION_MAJOR} VERSION_MINOR=${PROJECT_VERSION_MINOR})
 
-add_library(${PROJECT_NAME} INTERFACE)
-target_link_libraries(${PROJECT_NAME} INTERFACE Core Base)
+add_library(${_libname} INTERFACE)
+target_link_libraries(${_libname} INTERFACE ${_libname}_core ${_libname}_base)
+
+if(${PROJECT_NAME}_BUILD_TESTS)
+    enable_testing ()
+    add_subdirectory(tests)
+endif()
 
 # Create an export header
 include(GenerateExportHeader)
-generate_export_header(Core
+generate_export_header(${_libname}_core
     EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/core/export.h
 )
 
-generate_export_header(Base
+generate_export_header(${_libname}_base
     EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/base/export.h
 )
 
 # Install targets and headers
-install(TARGETS Core
+install(TARGETS ${_libname}_core
     EXPORT ${PROJECT_NAME}CoreTargets
     INCLUDES DESTINATION include/${PROJECT_NAME}
 )
 
-install(TARGETS Base ${PROJECT_NAME}
+install(TARGETS ${_libname}_base ${_libname}
     EXPORT ${PROJECT_NAME}BaseTargets
     INCLUDES DESTINATION include/${PROJECT_NAME}
 )
 
 install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
+install(FILES src/core/core.hpp src/base/base.hpp DESTINATION include/)
 install(FILES
  ${PROJECT_BINARY_DIR}/core/export.h DESTINATION include/${PROJECT_NAME}/core/
 )
