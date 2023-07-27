@@ -40,6 +40,15 @@ if (${PROJECT_NAME}_BUILD_COMPONENT_Base)
     endif ()
 endif()
 
+if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
+    set(Boost_VERSION 1.78)
+    find_package(Boost ${Boost_VERSION} REQUIRED)
+    if (NOT BUILD_SHARED_LIBS)
+        list(APPEND Convert_DOWNSTREAM_DEPS "Boost_${Boost_VERSION}")
+        # append all the libs that are required privately for Core
+    endif ()
+endif ()
+
 # Create an export header
 include(GenerateExportHeader)
 
@@ -107,7 +116,7 @@ if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
     )
 
     target_link_libraries(${_libname}_convert PUBLIC  ${_libname}_core)
-    target_link_libraries(${_libname}_convert PRIVATE ${_libname}_base)
+    target_link_libraries(${_libname}_convert PRIVATE ${_libname}_base Boost::boost)
 
     list(APPEND _selected_components Convert)
     list(APPEND _selected_libs ${_libname}_convert)
