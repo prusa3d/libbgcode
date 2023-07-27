@@ -28,7 +28,7 @@ include(CMakePackageConfigHelpers)
 
 write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-    VERSION 1.0
+    VERSION 0.4.1
     COMPATIBILITY AnyNewerVersion
 )
 
