@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(heatshrink C)
 
-add_library(${PROJECT_NAME} heatshrink.c heatshrink_decoder.c heatshrink_encoder.c)
+add_library(${PROJECT_NAME} heatshrink_decoder.c heatshrink_encoder.c)
 
 find_library(MATH_LIBRARY m) # Business as usual
 if(MATH_LIBRARY)

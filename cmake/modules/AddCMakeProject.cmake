@@ -14,7 +14,7 @@ function(add_cmake_project projectname)
     cmake_parse_arguments(P_ARGS "" "INSTALL_DIR;BUILD_COMMAND;INSTALL_COMMAND" "CMAKE_ARGS" ${ARGN})
 
     set(_configs_line -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE})
-    if (_is_multi OR MSVC)
+    if (_is_multi)
         set(_configs_line "")
     endif ()
 
