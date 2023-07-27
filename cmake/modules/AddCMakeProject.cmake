@@ -34,8 +34,8 @@ function(add_cmake_project projectname)
             "${_configs_line}"
             ${P_ARGS_CMAKE_ARGS}
        ${P_ARGS_UNPARSED_ARGUMENTS}
-       BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release -- ${_build_j}
-       INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config Release
+       BUILD_COMMAND ${CMAKE_COMMAND} --build . --config ${CMAKE_BUILD_TYPE}
+       INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config ${CMAKE_BUILD_TYPE}
     )
 
 endfunction(add_cmake_project)
