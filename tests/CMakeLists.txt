@@ -4,8 +4,12 @@ include(Catch)
 
 set(CATCH_EXTRA_ARGS "" CACHE STRING "Extra arguments for catch2 test suites.")
 
+set(TEST_DATA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/data)
+file(TO_NATIVE_PATH "${TEST_DATA_DIR}" TEST_DATA_DIR)
+
 add_library(test_common INTERFACE)
 target_include_directories(test_common INTERFACE ${CMAKE_CURRENT_LIST_DIR})
+target_compile_definitions(test_common INTERFACE TEST_DATA_DIR=R"\(${TEST_DATA_DIR}\)" CATCH_CONFIG_FAST_COMPILE)
 target_link_libraries(test_common INTERFACE Catch2::Catch2)
 
 add_subdirectory(core)
