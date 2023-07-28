@@ -1,5 +1,7 @@
 #include "core.hpp"
 
+#include <cstring>
+
 namespace bgcode { namespace core {
 
 // TO REMOVE
@@ -35,7 +37,7 @@ static uint32_t crc32_sw(const uint8_t* buffer, uint32_t length, uint32_t crc)
     return value;
 }
 
-static size_t checksum_size(EChecksumType type)
+size_t checksum_size(EChecksumType type)
 {
     switch (type)
     {
