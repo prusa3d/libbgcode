@@ -5,17 +5,20 @@
 using namespace bgcode::core;
 using namespace bgcode::convert;
 
-class ScopedFile
-{
+class ScopedFile {
 public:
-    explicit ScopedFile(FILE* file) : m_file(file) {}
-    ~ScopedFile() { if (m_file != nullptr) fclose(m_file); }
+    explicit ScopedFile(FILE *file)
+        : m_file(file) {}
+    ~ScopedFile() {
+        if (m_file != nullptr)
+            fclose(m_file);
+    }
+
 private:
-    FILE* m_file{ nullptr };
+    FILE *m_file { nullptr };
 };
 
-TEST_CASE("Convert from binary to ascii", "[Convert]")
-{
+TEST_CASE("Convert from binary to ascii", "[Convert]") {
     std::cout << "\nTEST: Convert from binary to ascii\n";
 
     const std::string src_filename = std::string(TEST_DATA_DIR) + "/mini_cube_binary.gcode";
@@ -23,13 +26,13 @@ TEST_CASE("Convert from binary to ascii", "[Convert]")
     const std::string check_filename = std::string(TEST_DATA_DIR) + "/mini_cube_binary_ascii.gcode";
 
     // Open source file
-    FILE* src_file;
+    FILE *src_file;
     errno_t err = fopen_s(&src_file, src_filename.c_str(), "rb");
     REQUIRE(err == 0);
     ScopedFile scoped_src_file(src_file);
 
     // Open destination file
-    FILE* dst_file;
+    FILE *dst_file;
     err = fopen_s(&dst_file, dst_filename.c_str(), "w+b");
     REQUIRE(err == 0);
     ScopedFile scoped_dst_file(dst_file);
@@ -39,7 +42,7 @@ TEST_CASE("Convert from binary to ascii", "[Convert]")
     REQUIRE(res == EResult::Success);
 
     // Open check file
-    FILE* check_file;
+    FILE *check_file;
     err = fopen_s(&check_file, check_filename.c_str(), "rb");
     REQUIRE(err == 0);
     ScopedFile scoped_check_file(check_file);
@@ -65,7 +68,6 @@ TEST_CASE("Convert from binary to ascii", "[Convert]")
     } while (!feof(dst_file) || !feof(check_file));
 }
 
-TEST_CASE("Convert from ascii to binary", "[Convert]")
-{
+TEST_CASE("Convert from ascii to binary", "[Convert]") {
     std::cout << "\nTEST: Convert from ascii to binary\n";
 }
