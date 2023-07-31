@@ -28,8 +28,10 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
         return !ferror(&dst_file);
     };
 
-    if (!is_valid_binary_gcode(src_file))
-        return EResult::InvalidBinaryGCodeFile;
+    EResult res = is_valid_binary_gcode(src_file, true);
+    if (res != EResult::Success)
+        // propagate error
+        return res;
 
     fseek(&src_file, 0, SEEK_END);
     const long file_size = ftell(&src_file);
@@ -39,7 +41,7 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
     // read file header
     //
     FileHeader file_header;
-    EResult res = read_header(src_file, file_header, nullptr);
+    res = read_header(src_file, file_header, nullptr);
     if (res != EResult::Success)
         // propagate error
         return res;

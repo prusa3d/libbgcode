@@ -104,7 +104,8 @@ TEST_CASE("File transversal", "[Core]")
     const errno_t err = fopen_s(&file, filename.c_str(), "rb");
     REQUIRE(err == 0);
     ScopedFile scoped_file(file);
-    REQUIRE(is_valid_binary_gcode(*file));
+    const EResult res = is_valid_binary_gcode(*file);
+    REQUIRE(res == EResult::Success);
 
     fseek(file, 0, SEEK_END);
     const long file_size = ftell(file);
@@ -190,7 +191,8 @@ TEST_CASE("Search for GCode blocks", "[Core]")
     const errno_t err = fopen_s(&file, filename.c_str(), "rb");
     REQUIRE(err == 0);
     ScopedFile scoped_file(file);
-    REQUIRE(is_valid_binary_gcode(*file));
+    const EResult res = is_valid_binary_gcode(*file);
+    REQUIRE(res == EResult::Success);
 
     fseek(file, 0, SEEK_END);
     const long file_size = ftell(file);

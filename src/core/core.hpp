@@ -145,9 +145,10 @@ extern BGCODE_CORE_EXPORT size_t get_checksum_max_cache_size();
 // Set the max size of the cache used to calculate checksums, in bytes
 extern BGCODE_CORE_EXPORT void set_checksum_max_cache_size(size_t size);
 
-// Returns true if the given file is a valid binary gcode
+// Returns EResult::Success if the given file is a valid binary gcode
+// If check_contents is set to true, the order of the blocks is checked
 // Does not modify the file position
-extern BGCODE_CORE_EXPORT bool is_valid_binary_gcode(FILE& file);
+extern BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents = false);
 
 // Reads the file header.
 // If max_version is not null, version is checked against the passed value

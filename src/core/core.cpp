@@ -274,21 +274,162 @@ BGCODE_CORE_EXPORT std::string translate_result(EResult result)
     return std::string();
 }
 
-BGCODE_CORE_EXPORT bool is_valid_binary_gcode(FILE& file)
+BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents)
 {
     // cache file position
     const long curr_pos = ftell(&file);
     rewind(&file);
 
+    // check magic number
     std::array<uint8_t, 4> magic;
     fread((void*)magic.data(), 1, magic.size(), &file);
     if (ferror(&file))
-        return false;
-    else {
+        return EResult::ReadError;
+    else if (magic != MAGIC) {
         // restore file position
         fseek(&file, curr_pos, SEEK_SET);
-        return magic == MAGIC;
+        return EResult::InvalidMagicNumber;
     }
+
+    // check contents
+    if (check_contents) {
+        fseek(&file, 0, SEEK_END);
+        const long file_size = ftell(&file);
+        rewind(&file);
+
+        // read header
+        FileHeader file_header;
+        EResult res = read_header(file, file_header, nullptr);
+        if (res != EResult::Success) {
+            // restore file position
+            fseek(&file, curr_pos, SEEK_SET);
+            // propagate error
+            return res;
+        }
+        BlockHeader block_header;
+        // read file metadata block header
+        res = read_next_block_header(file, file_header, block_header, false);
+        if (res != EResult::Success) {
+            // restore file position
+            fseek(&file, curr_pos, SEEK_SET);
+            // propagate error
+            return res;
+        }
+        if ((EBlockType)block_header.type != EBlockType::FileMetadata) {
+            // restore file position
+            fseek(&file, curr_pos, SEEK_SET);
+            return EResult::InvalidBlockType;
+        }
+
+        // read printer metadata block header
+        res = skip_block_content(file, file_header, block_header);
+        if (res != EResult::Success) {
+            // restore file position
+            fseek(&file, curr_pos, SEEK_SET);
+            // propagate error
+            return res;
+        }
+        res = read_next_block_header(file, file_header, block_header, false);
+        if (res != EResult::Success) {
+            // restore file position
+            fseek(&file, curr_pos, SEEK_SET);
+            // propagate error
+            return res;
+        }
+        if ((EBlockType)block_header.type != EBlockType::PrinterMetadata) {
+            // restore file position
+            fseek(&file, curr_pos, SEEK_SET);
+            return EResult::InvalidBlockType;
+        }
+
+        // read thumbnails block headers, if present
+        res = skip_block_content(file, file_header, block_header);
+        if (res != EResult::Success) {
+            // restore file position
+            fseek(&file, curr_pos, SEEK_SET);
+            // propagate error
+            return res;
+        }
+        res = read_next_block_header(file, file_header, block_header, false);
+        if (res != EResult::Success) {
+            // restore file position
+            fseek(&file, curr_pos, SEEK_SET);
+            // propagate error
+            return res;
+        }
+        while ((EBlockType)block_header.type == EBlockType::Thumbnail) {
+            res = skip_block_content(file, file_header, block_header);
+            if (res != EResult::Success) {
+                // restore file position
+                fseek(&file, curr_pos, SEEK_SET);
+                // propagate error
+                return res;
+            }
+            res = read_next_block_header(file, file_header, block_header, false);
+            if (res != EResult::Success) {
+                // restore file position
+                fseek(&file, curr_pos, SEEK_SET);
+                // propagate error
+                return res;
+            }
+        }
+
+        // read print metadata block header
+        if ((EBlockType)block_header.type != EBlockType::PrintMetadata) {
+            // restore file position
+            fseek(&file, curr_pos, SEEK_SET);
+            return EResult::InvalidBlockType;
+        }
+
+        // read slicer metadata block header
+        res = skip_block_content(file, file_header, block_header);
+        if (res != EResult::Success) {
+            // restore file position
+            fseek(&file, curr_pos, SEEK_SET);
+            // propagate error
+            return res;
+        }
+        res = read_next_block_header(file, file_header, block_header, false);
+        if (res != EResult::Success) {
+            // restore file position
+            fseek(&file, curr_pos, SEEK_SET);
+            // propagate error
+            return res;
+        }
+        if ((EBlockType)block_header.type != EBlockType::SlicerMetadata) {
+            // restore file position
+            fseek(&file, curr_pos, SEEK_SET);
+            return EResult::InvalidBlockType;
+        }
+
+        // read gcode block headers
+        do {
+            res = skip_block_content(file, file_header, block_header);
+            if (res != EResult::Success) {
+                // restore file position
+                fseek(&file, curr_pos, SEEK_SET);
+                // propagate error
+                return res;
+            }
+            if (ftell(&file) == file_size)
+                break;
+            res = read_next_block_header(file, file_header, block_header, false);
+            if (res != EResult::Success) {
+                // restore file position
+                fseek(&file, curr_pos, SEEK_SET);
+                // propagate error
+                return res;
+            }
+            if ((EBlockType)block_header.type != EBlockType::GCode) {
+                // restore file position
+                fseek(&file, curr_pos, SEEK_SET);
+                return EResult::InvalidBlockType;
+            }
+        } while (!feof(&file));
+    }
+
+    fseek(&file, curr_pos, SEEK_SET);
+    return EResult::Success;
 }
 
 BGCODE_CORE_EXPORT EResult read_header(FILE& file, FileHeader& header, const uint32_t* const max_version)
