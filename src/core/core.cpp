@@ -1,11 +1,6 @@
 #include "core.hpp"
 
-#include <cstring>
-
 namespace bgcode { namespace core {
-
-// TO REMOVE
-BGCODE_CORE_EXPORT int foo() { return 1; }
 
 static size_t g_checksum_max_cache_size = 65536;
 
@@ -35,16 +30,6 @@ static uint32_t crc32_sw(const uint8_t* buffer, uint32_t length, uint32_t crc)
     }
     value ^= 0xFFFFFFFF;
     return value;
-}
-
-size_t checksum_size(EChecksumType type)
-{
-    switch (type)
-    {
-    case EChecksumType::None:  { return 0; }
-    case EChecksumType::CRC32: { return 4; }
-    }
-    return 0;
 }
 
 static std::vector<uint8_t> encode(const void* data, size_t data_size)
@@ -255,6 +240,40 @@ EResult BlockHeader::read(FILE& file)
 BGCODE_CORE_EXPORT size_t get_checksum_max_cache_size() { return g_checksum_max_cache_size; }
 BGCODE_CORE_EXPORT void set_checksum_max_cache_size(size_t size) { g_checksum_max_cache_size = size; }
 
+BGCODE_CORE_EXPORT std::string translate_result(EResult result)
+{
+    switch (result)
+    {
+    case EResult::Success:                     { return "Success"; }
+    case EResult::ReadError:                   { return "Read error"; }
+    case EResult::WriteError:                  { return "Write error"; }
+    case EResult::InvalidMagicNumber:          { return "Invalid magic number"; }
+    case EResult::InvalidVersionNumber:        { return "Invalid version number"; }
+    case EResult::InvalidChecksumType:         { return "Invalid checksum type"; }
+    case EResult::InvalidBlockType:            { return "Invalid block type"; }
+    case EResult::InvalidCompressionType:      { return "Invalid compression type"; }
+    case EResult::InvalidMetadataEncodingType: { return "Invalid metadata encoding type"; }
+    case EResult::InvalidGCodeEncodingType:    { return "Invalid gcode encoding type"; }
+    case EResult::DataCompressionError:        { return "Data compression error"; }
+    case EResult::DataUncompressionError:      { return "Data uncompression error"; }
+    case EResult::MetadataEncodingError:       { return "Metadata encoding error"; }
+    case EResult::MetadataDecodingError:       { return "Metadata decoding error"; }
+    case EResult::GCodeEncodingError:          { return "GCode encoding error"; }
+    case EResult::GCodeDecodingError:          { return "GCode decoding error"; }
+    case EResult::BlockNotFound:               { return "Block not found"; }
+    case EResult::InvalidChecksum:             { return "Invalid checksum"; }
+    case EResult::InvalidThumbnailFormat:      { return "Invalid thumbnail format"; }
+    case EResult::InvalidThumbnailWidth:       { return "Invalid thumbnail width"; }
+    case EResult::InvalidThumbnailHeight:      { return "Invalid thumbnail height"; }
+    case EResult::InvalidThumbnailDataSize:    { return "Invalid thumbnail data size"; }
+    case EResult::InvalidBinaryGCodeFile:      { return "Invalid binary GCode file"; }
+    case EResult::InvalidAsciiGCodeFile:       { return "Invalid ascii GCode file"; }
+    case EResult::InvalidSequenceOfBlocks:     { return "Invalid sequence of blocks"; }
+    case EResult::AlreadyBinarized:            { return "Already binarized"; }
+    }
+    return std::string();
+}
+
 BGCODE_CORE_EXPORT bool is_valid_binary_gcode(FILE& file)
 {
     // cache file position
@@ -364,6 +383,16 @@ BGCODE_CORE_EXPORT size_t block_payload_size(const BlockHeader& block_header)
     ret += ((ECompressionType)block_header.compression == ECompressionType::None) ?
         block_header.uncompressed_size : block_header.compressed_size;
     return ret;
+}
+
+BGCODE_CORE_EXPORT size_t checksum_size(EChecksumType type)
+{
+  switch (type)
+  {
+  case EChecksumType::None: { return 0; }
+  case EChecksumType::CRC32: { return 4; }
+  }
+  return 0;
 }
 
 BGCODE_CORE_EXPORT size_t block_content_size(const FileHeader& file_header, const BlockHeader& block_header)

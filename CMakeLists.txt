@@ -89,7 +89,7 @@ if (${PROJECT_NAME}_BUILD_COMPONENT_Base)
             $<INSTALL_INTERFACE:include>
     )
 
-    target_link_libraries(${_libname}_base PRIVATE heatshrink::heatshrink ZLIB::ZLIB)
+    target_link_libraries(${_libname}_base PRIVATE heatshrink::heatshrink_dynalloc ZLIB::ZLIB)
     target_link_libraries(${_libname}_base PUBLIC ${_libname}_core)
 
     list(APPEND _selected_components Base)
