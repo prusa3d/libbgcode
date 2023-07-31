@@ -1,4 +1,5 @@
 #include "core.hpp"
+#include <cstring>
 
 namespace bgcode { namespace core {
 
