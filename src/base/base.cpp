@@ -1,4 +1,5 @@
 #include "base.hpp"
+#include <cstring>
 
 extern "C" {
 #include <heatshrink/heatshrink_encoder.h>
