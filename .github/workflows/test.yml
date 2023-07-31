@@ -5,6 +5,7 @@ on:
     workflows: ['Build']                   # runs after Build workflow
     types:
       - completed
+  workflow_dispatch:
 
 jobs:
   report:
