@@ -177,7 +177,7 @@ jobs:
       shell: bash
       working-directory: ${{github.workspace}}/deps/build
       run: |
-        cmake .. -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9
+        cmake .. -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12
         cmake --build . 
 
     - name: Configure CMake
@@ -188,7 +188,7 @@ jobs:
       # Note the current convention is to use the -S and -B options here to specify source 
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build/destdir/usr/local -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/dist -DCATCH_EXTRA_ARGS="--reporter;junit;--out=result-junit-mac.xml"
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build/destdir/usr/local -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/dist -DCATCH_EXTRA_ARGS="--reporter;junit;--out=result-junit-mac.xml"
     
     - name: Build
       working-directory: ${{github.workspace}}/build
