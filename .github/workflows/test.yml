@@ -5,7 +5,6 @@ on:
     workflows: ['Build']                   # runs after Build workflow
     types:
       - completed
-  workflow_dispatch:
 
 jobs:
   report:
@@ -13,7 +12,7 @@ jobs:
     steps:
     - uses: dorny/test-reporter@v1
       with:
-        artifact: test-results
+        artifact: /test-results(.*)/
         name: Tests                 
         path: 'tests/**/result-junit-**.xml' 
         reporter: java-junit
