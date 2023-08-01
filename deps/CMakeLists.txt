@@ -1,6 +1,22 @@
 cmake_minimum_required(VERSION 3.12)
 project(LibBGCode_Deps)
 
+if (APPLE)
+    # This ensures dependencies don't use SDK features which are not available in the version specified by Deployment target
+    # That can happen when one uses a recent SDK but specifies an older Deployment target
+    set(DEP_WERRORS_SDK "-Werror=partial-availability -Werror=unguarded-availability -Werror=unguarded-availability-new")
+    
+    set(DEP_CMAKE_OPTS
+        "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
+        "-DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT}"
+        "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}"
+        "-DCMAKE_CXX_FLAGS=${DEP_WERRORS_SDK}"
+        "-DCMAKE_C_FLAGS=${DEP_WERRORS_SDK}"
+        "-DCMAKE_FIND_FRAMEWORK=LAST"
+        "-DCMAKE_FIND_APPBUNDLE=LAST"
+    )
+endif ()
+
 include(${PROJECT_SOURCE_DIR}/../cmake/modules/AddCMakeProject.cmake)
 
 set(supported_packages Boost heatshrink Catch2 ZLIB)
