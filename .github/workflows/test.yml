@@ -13,7 +13,14 @@ jobs:
     steps:
     - uses: dorny/test-reporter@v1
       with:
-        artifact: test-results            # artifact name
-        name: Tests                       # Name of the check run which will be created
-        path: 'tests/**/result-junit.xml' # Path to test results (inside artifact .zip)
-        reporter: java-junit              # Format of test results
+        artifact: test-results
+        name: Linux Tests                 
+        path: 'tests/**/result-junit.xml' 
+        reporter: java-junit
+
+  - uses: dorny/test-reporter@v1
+        with:
+          artifact: test-results-msvc
+          name: Win Tests                 
+          path: 'tests/**/result-junit.xml' 
+          reporter: java-junit 
