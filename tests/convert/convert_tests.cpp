@@ -2,6 +2,8 @@
 
 #include "convert/convert.hpp"
 
+#include <fstream>
+
 using namespace bgcode::core;
 using namespace bgcode::convert;
 
@@ -14,57 +16,87 @@ private:
     FILE* m_file{ nullptr };
 };
 
-// Does not build on Linux
-//TEST_CASE("Convert from binary to ascii", "[Convert]")
-//{
-//    std::cout << "\nTEST: Convert from binary to ascii\n";
+void binary_to_ascii(const std::string& src_filename, const std::string& dst_filename)
+{
+    // Open source file
+    FILE* src_file = fopen(src_filename.c_str(), "rb");
+    REQUIRE(src_file != nullptr);
+    ScopedFile scoped_src_file(src_file);
 
-//    const std::string src_filename = std::string(TEST_DATA_DIR) + "/mini_cube_binary.gcode";
-//    const std::string dst_filename = std::string(TEST_DATA_DIR) + "/mini_cube_binary_converted.gcode";
-//    const std::string check_filename = std::string(TEST_DATA_DIR) + "/mini_cube_binary_ascii.gcode";
+    // Open destination file
+    FILE* dst_file = fopen(dst_filename.c_str(), "wb");
+    REQUIRE(dst_file != nullptr);
+    ScopedFile scoped_dst_file(dst_file);
 
-//    // Open source file
-//    FILE* src_file;
-//    errno_t err = fopen_s(&src_file, src_filename.c_str(), "rb");
-//    REQUIRE(err == 0);
-//    ScopedFile scoped_src_file(src_file);
+    // Perform conversion
+    EResult res = from_binary_to_ascii(*src_file, *dst_file, true);
+    REQUIRE(res == EResult::Success);
+}
 
-//    // Open destination file
-//    FILE* dst_file;
-//    err = fopen_s(&dst_file, dst_filename.c_str(), "w+b");
-//    REQUIRE(err == 0);
-//    ScopedFile scoped_dst_file(dst_file);
+void compare_binary_files(const std::string& filename1, const std::string& filename2)
+{
+    // Open file 1
+    FILE* file1 = fopen(filename1.c_str(), "rb");
+    REQUIRE(file1 != nullptr);
+    ScopedFile scoped_file1(file1);
 
-//    // Perform conversion
-//    EResult res = from_binary_to_ascii(*src_file, *dst_file, true);
-//    REQUIRE(res == EResult::Success);
+    // Open file 2
+    FILE* file2 = fopen(filename2.c_str(), "rb");
+    REQUIRE(file2 != nullptr);
+    ScopedFile scoped_file2(file2);
 
-//    // Open check file
-//    FILE* check_file;
-//    err = fopen_s(&check_file, check_filename.c_str(), "rb");
-//    REQUIRE(err == 0);
-//    ScopedFile scoped_check_file(check_file);
+    // Compare file sizes
+    fseek(file1, 0, SEEK_END);
+    const long file1_size = ftell(file1);
+    rewind(file1);
+    fseek(file2, 0, SEEK_END);
+    const long file2_size = ftell(file2);
+    rewind(file2);
+    REQUIRE(file1_size == file2_size);
 
-//    // Compare file sizes
-//    fseek(dst_file, 0, SEEK_END);
-//    const long dst_file_size = ftell(dst_file);
-//    rewind(dst_file);
-//    fseek(check_file, 0, SEEK_END);
-//    const long check_file_size = ftell(check_file);
-//    rewind(check_file);
-//    REQUIRE(dst_file_size == check_file_size);
+    // Compare file contents
+    static const size_t buf_size = 4096;
+    std::vector<uint8_t> buf1(buf_size);
+    std::vector<uint8_t> buf2(buf_size);
+    do {
+        const size_t r1 = fread(buf1.data(), 1, buf_size, file1);
+        const size_t r2 = fread(buf2.data(), 1, buf_size, file2);
+        REQUIRE(r1 == r2);
+        REQUIRE(buf1 == buf2);
+    } while (!feof(file1) || !feof(file2));
+}
 
-//    // Compare file contents
-//    static const size_t buf_size = 4096;
-//    std::vector<uint8_t> dst_buf(buf_size);
-//    std::vector<uint8_t> check_buf(buf_size);
-//    do {
-//        const size_t dst_r = fread(dst_buf.data(), 1, buf_size, dst_file);
-//        const size_t check_r = fread(check_buf.data(), 1, buf_size, check_file);
-//        REQUIRE(dst_r == check_r);
-//        REQUIRE(dst_buf == check_buf);
-//    } while (!feof(dst_file) || !feof(check_file));
-//}
+void compare_text_files(const std::string& filename1, const std::string& filename2)
+{
+    // Open files
+    std::ifstream file1(filename1, std::ios::binary);
+    REQUIRE(file1.good());
+    std::ifstream file2(filename2, std::ios::binary);
+    REQUIRE(file1.good());
+    // Compare file contents
+    std::string line1;
+    std::string line2;
+    while (std::getline(file1, line1)) {
+        std::getline(file2, line2);
+        if (!line1.empty() && line1.back() == '\r') line1.pop_back();
+        if (!line2.empty() && line2.back() == '\r') line2.pop_back();
+        REQUIRE(line1 == line2);
+    }
+}
+
+TEST_CASE("Convert from binary to ascii", "[Convert]")
+{
+    std::cout << "\nTEST: Convert from binary to ascii\n";
+
+    const std::string src_filename = std::string(TEST_DATA_DIR) + "/mini_cube_binary.gcode";
+    const std::string dst_filename = std::string(TEST_DATA_DIR) + "/mini_cube_binary_converted.gcode";
+    const std::string check_filename = std::string(TEST_DATA_DIR) + "/mini_cube_binary_ascii.gcode";
+
+    // convert from binary to ascii
+    binary_to_ascii(src_filename, dst_filename);
+    // compare results
+    compare_text_files(dst_filename, check_filename);
+}
 
 TEST_CASE("Convert from ascii to binary", "[Convert]")
 {
