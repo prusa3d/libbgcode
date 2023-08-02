@@ -2,6 +2,8 @@
 
 #include "convert/convert.hpp"
 
+#include <fstream>
+
 using namespace bgcode::core;
 using namespace bgcode::convert;
 
@@ -31,7 +33,7 @@ void binary_to_ascii(const std::string& src_filename, const std::string& dst_fil
     REQUIRE(res == EResult::Success);
 }
 
-void compare_files(const std::string& filename1, const std::string& filename2)
+void compare_binary_files(const std::string& filename1, const std::string& filename2)
 {
     // Open file 1
     FILE* file1 = fopen(filename1.c_str(), "rb");
@@ -64,6 +66,24 @@ void compare_files(const std::string& filename1, const std::string& filename2)
     } while (!feof(file1) || !feof(file2));
 }
 
+void compare_text_files(const std::string& filename1, const std::string& filename2)
+{
+    // Open files
+    std::ifstream file1(filename1, std::ios::binary);
+    REQUIRE(file1.good());
+    std::ifstream file2(filename2, std::ios::binary);
+    REQUIRE(file1.good());
+    // Compare file contents
+    std::string line1;
+    std::string line2;
+    while (std::getline(file1, line1)) {
+        std::getline(file2, line2);
+        if (!line1.empty() && line1.back() == '\r') line1.pop_back();
+        if (!line2.empty() && line2.back() == '\r') line2.pop_back();
+        REQUIRE(line1 == line2);
+    }
+}
+
 TEST_CASE("Convert from binary to ascii", "[Convert]")
 {
     std::cout << "\nTEST: Convert from binary to ascii\n";
@@ -75,7 +95,7 @@ TEST_CASE("Convert from binary to ascii", "[Convert]")
     // convert from binary to ascii
     binary_to_ascii(src_filename, dst_filename);
     // compare results
-    compare_files(dst_filename, check_filename);
+    compare_text_files(dst_filename, check_filename);
 }
 
 TEST_CASE("Convert from ascii to binary", "[Convert]")
