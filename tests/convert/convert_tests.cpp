@@ -37,15 +37,13 @@ void binary_to_ascii(const std::string& src_filename, const std::string& dst_fil
 void ascii_to_binary(const std::string& src_filename, const std::string& dst_filename, const BinarizerConfig& config)
 {
     // Open source file
-    FILE* src_file;
-    errno_t err = fopen_s(&src_file, src_filename.c_str(), "rb");
-    REQUIRE(err == 0);
+    FILE* src_file = fopen(src_filename.c_str(), "rb");
+    REQUIRE(src_file != nullptr);
     ScopedFile ab_scoped_src_file(src_file);
 
     // Open destination file
-    FILE* dst_file;
-    err = fopen_s(&dst_file, dst_filename.c_str(), "wb");
-    REQUIRE(err == 0);
+    FILE* dst_file = fopen(dst_filename.c_str(), "wb");
+    REQUIRE(dst_file != nullptr);
     ScopedFile ab_scoped_dst_file(dst_file);
 
     // Perform conversion
