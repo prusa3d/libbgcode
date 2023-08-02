@@ -101,7 +101,7 @@ TEST_CASE("Checksum max cache size", "[Core]")
      set_checksum_max_cache_size(MAX_CHECKSUM_CACHE_SIZE);
 
      FILE* file;
-     const errno_t err = fopen_s(&file, filename.c_str(), "rb");
+     const int err = fopen_s(&file, filename.c_str(), "rb");
      REQUIRE(err == 0);
      ScopedFile scoped_file(file);
      const EResult res = is_valid_binary_gcode(*file);
@@ -188,7 +188,7 @@ TEST_CASE("Checksum max cache size", "[Core]")
      set_checksum_max_cache_size(MAX_CHECKSUM_CACHE_SIZE);
 
      FILE* file;
-     const errno_t err = fopen_s(&file, filename.c_str(), "rb");
+     const int err = fopen_s(&file, filename.c_str(), "rb");
      REQUIRE(err == 0);
      ScopedFile scoped_file(file);
      const EResult res = is_valid_binary_gcode(*file);

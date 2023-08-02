@@ -18,7 +18,7 @@ void binary_to_ascii(const std::string& src_filename, const std::string& dst_fil
 {
     // Open source file
     FILE* src_file;
-    errno_t err = fopen_s(&src_file, src_filename.c_str(), "rb");
+    int err = fopen_s(&src_file, src_filename.c_str(), "rb");
     REQUIRE(err == 0);
     ScopedFile scoped_src_file(src_file);
 
@@ -37,7 +37,7 @@ void compare_files(const std::string& filename1, const std::string& filename2)
 {
     // Open file 1
     FILE* file1;
-    errno_t err = fopen_s(&file1, filename1.c_str(), "rb");
+    int err = fopen_s(&file1, filename1.c_str(), "rb");
     REQUIRE(err == 0);
     ScopedFile scoped_file1(file1);
 
