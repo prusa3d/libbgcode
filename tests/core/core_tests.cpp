@@ -100,9 +100,8 @@ TEST_CASE("Checksum max cache size", "[Core]")
      const bool verify_checksum = true;
      set_checksum_max_cache_size(MAX_CHECKSUM_CACHE_SIZE);
 
-     FILE* file;
-     const int err = fopen_s(&file, filename.c_str(), "rb");
-     REQUIRE(err == 0);
+     FILE* file = fopen(filename.c_str(), "rb");
+     REQUIRE(file != nullptr);
      ScopedFile scoped_file(file);
      const EResult res = is_valid_binary_gcode(*file);
      REQUIRE(res == EResult::Success);
@@ -187,9 +186,8 @@ TEST_CASE("Checksum max cache size", "[Core]")
      const bool verify_checksum = true;
      set_checksum_max_cache_size(MAX_CHECKSUM_CACHE_SIZE);
 
-     FILE* file;
-     const int err = fopen_s(&file, filename.c_str(), "rb");
-     REQUIRE(err == 0);
+     FILE* file = fopen(filename.c_str(), "rb");
+     REQUIRE(file != nullptr);
      ScopedFile scoped_file(file);
      const EResult res = is_valid_binary_gcode(*file);
      REQUIRE(res == EResult::Success);

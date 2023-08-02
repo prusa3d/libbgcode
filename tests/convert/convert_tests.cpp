@@ -17,15 +17,13 @@ private:
 void binary_to_ascii(const std::string& src_filename, const std::string& dst_filename)
 {
     // Open source file
-    FILE* src_file;
-    int err = fopen_s(&src_file, src_filename.c_str(), "rb");
-    REQUIRE(err == 0);
+    FILE* src_file = fopen(src_filename.c_str(), "rb");
+    REQUIRE(src_file != nullptr);
     ScopedFile scoped_src_file(src_file);
 
     // Open destination file
-    FILE* dst_file;
-    err = fopen_s(&dst_file, dst_filename.c_str(), "wb");
-    REQUIRE(err == 0);
+    FILE* dst_file = fopen(dst_filename.c_str(), "wb");
+    REQUIRE(dst_file != nullptr);
     ScopedFile scoped_dst_file(dst_file);
 
     // Perform conversion
@@ -36,15 +34,13 @@ void binary_to_ascii(const std::string& src_filename, const std::string& dst_fil
 void compare_files(const std::string& filename1, const std::string& filename2)
 {
     // Open file 1
-    FILE* file1;
-    int err = fopen_s(&file1, filename1.c_str(), "rb");
-    REQUIRE(err == 0);
+    FILE* file1 = fopen(filename1.c_str(), "rb");
+    REQUIRE(file1 != nullptr);
     ScopedFile scoped_file1(file1);
 
     // Open file 2
-    FILE* file2;
-    err = fopen_s(&file2, filename2.c_str(), "rb");
-    REQUIRE(err == 0);
+    FILE* file2 = fopen(filename2.c_str(), "rb");
+    REQUIRE(file2 != nullptr);
     ScopedFile scoped_file2(file2);
 
     // Compare file sizes
