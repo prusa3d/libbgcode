@@ -5,6 +5,7 @@
 #include <fstream>
 
 using namespace bgcode::core;
+using namespace bgcode::base;
 using namespace bgcode::convert;
 
 class ScopedFile
@@ -30,6 +31,25 @@ void binary_to_ascii(const std::string& src_filename, const std::string& dst_fil
 
     // Perform conversion
     EResult res = from_binary_to_ascii(*src_file, *dst_file, true);
+    REQUIRE(res == EResult::Success);
+}
+
+void ascii_to_binary(const std::string& src_filename, const std::string& dst_filename, const BinarizerConfig& config)
+{
+    // Open source file
+    FILE* src_file;
+    errno_t err = fopen_s(&src_file, src_filename.c_str(), "rb");
+    REQUIRE(err == 0);
+    ScopedFile ab_scoped_src_file(src_file);
+
+    // Open destination file
+    FILE* dst_file;
+    err = fopen_s(&dst_file, dst_filename.c_str(), "wb");
+    REQUIRE(err == 0);
+    ScopedFile ab_scoped_dst_file(dst_file);
+
+    // Perform conversion
+    EResult res = from_ascii_to_binary(*src_file, *dst_file, config);
     REQUIRE(res == EResult::Success);
 }
 
@@ -101,4 +121,26 @@ TEST_CASE("Convert from binary to ascii", "[Convert]")
 TEST_CASE("Convert from ascii to binary", "[Convert]")
 {
     std::cout << "\nTEST: Convert from ascii to binary\n";
+
+    // convert from ascii to binary
+    const std::string ab_src_filename = std::string(TEST_DATA_DIR) + "/mini_cube_ascii.gcode";
+    const std::string ab_dst_filename = std::string(TEST_DATA_DIR) + "/mini_cube_ascii_converted.gcode";
+    BinarizerConfig config;
+    config.checksum = EChecksumType::CRC32;
+    config.compression.file_metadata = ECompressionType::None;
+    config.compression.print_metadata = ECompressionType::None;
+    config.compression.printer_metadata = ECompressionType::None;
+    config.compression.slicer_metadata = ECompressionType::Deflate;
+    config.compression.gcode = ECompressionType::Heatshrink_12_4;
+    config.gcode_encoding = EGCodeEncodingType::MeatPackComments;
+    config.metadata_encoding = EMetadataEncodingType::INI;
+    ascii_to_binary(ab_src_filename, ab_dst_filename, config);
+
+    // convert back from binary to ascii 
+    const std::string ba_src_filename = ab_dst_filename;
+    const std::string ba_dst_filename = std::string(TEST_DATA_DIR) + "/mini_cube_ascii_converted_converted.gcode";
+    binary_to_ascii(ba_src_filename, ba_dst_filename);
+
+    // compare results
+    compare_text_files(ba_dst_filename, ab_src_filename);
 }

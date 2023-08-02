@@ -3,10 +3,154 @@
 
 #include <boost/beast/core/detail/base64.hpp>
 
+#include <optional>
+#include <functional>
+#include <charconv>
+
 namespace bgcode { 
 using namespace core;
 using namespace base;
 namespace convert {
+
+class GCodeReader
+{
+public:
+    struct GCodeLine
+    {
+        std::string raw;
+        void reset() { raw.clear(); }
+    };
+
+    GCodeReader(FILE& file) : m_file(file) {}
+
+    typedef std::function<void(GCodeReader&, const GCodeLine&)> ParseLineCallback;
+    typedef std::function<void(const char*, const char*)> InternalParseLineCallback;
+
+    // Returns false if reading the file failed.
+    bool parse(ParseLineCallback callback) {
+        GCodeLine gline;
+        m_parsing = true;
+        return parse_internal([this, &gline, callback](const char* begin, const char* end) {
+              gline.reset();
+              parse_line(begin, end, gline, callback);
+        });
+    }
+
+    void quit_parsing() { m_parsing = false; }
+
+private:
+    FILE& m_file;
+    bool m_parsing{ false };
+
+    bool parse_internal(InternalParseLineCallback parse_line_callback) {
+        // Read the input stream 64kB at a time, extract lines and process them.
+        std::vector<char> buffer(65536 * 10, 0);
+        // Line buffer.
+        std::string gcode_line;
+        size_t file_pos = 0;
+        for (;;) {
+            size_t cnt_read = ::fread(buffer.data(), 1, buffer.size(), &m_file);
+            if (::ferror(&m_file)) {
+                m_parsing = false;
+                return false;
+            }
+            bool eof = cnt_read == 0;
+            auto it = buffer.begin();
+            auto it_bufend = buffer.begin() + cnt_read;
+            while (it != it_bufend || (eof && !gcode_line.empty())) {
+                // Find end of line.
+                bool eol = false;
+                auto it_end = it;
+                for (; it_end != it_bufend && !(eol = *it_end == '\r' || *it_end == '\n'); ++it_end)
+                    ; // silence -Wempty-body
+                // End of line is indicated also if end of file was reached.
+                eol |= eof && it_end == it_bufend;
+                if (eol) {
+                    if (gcode_line.empty())
+                        parse_line_callback(&(*it), &(*it_end));
+                    else {
+                        gcode_line.insert(gcode_line.end(), it, it_end);
+                        parse_line_callback(gcode_line.c_str(), gcode_line.c_str() + gcode_line.size());
+                        gcode_line.clear();
+                    }
+                    if (!m_parsing)
+                        // The callback wishes to exit.
+                        return true;
+                }
+                else
+                    gcode_line.insert(gcode_line.end(), it, it_end);
+                // Skip EOL.
+                it = it_end;
+                if (it != it_bufend && *it == '\r')
+                    ++it;
+                if (it != it_bufend && *it == '\n')
+                    ++it;
+            }
+            if (eof)
+                break;
+            file_pos += cnt_read;
+        }
+        m_parsing = false;
+        return true;
+    }
+
+    const char* parse_line(const char* ptr, const char* end, GCodeLine& gline, ParseLineCallback callback) {
+        std::pair<const char*, const char*> cmd;
+        const char* line_end = parse_line_internal(ptr, end, gline, cmd);
+        callback(*this, gline);
+        return line_end;
+    }
+
+    const char* parse_line_internal(const char* ptr, const char* end, GCodeLine& gline, std::pair<const char*, const char*>& command) {
+        // command and args
+        const char* c = ptr;
+        {
+            // Skip the whitespaces.
+            command.first = skip_whitespaces(c);
+            // Skip the command.
+            c = command.second = skip_word(command.first);
+            // Up to the end of line or comment.
+            while (!is_end_of_gcode_line(*c)) {
+                // Skip whitespaces.
+                c = skip_whitespaces(c);
+                if (is_end_of_gcode_line(*c))
+                    break;
+                // Skip the rest of the word.
+                c = skip_word(c);
+            }
+        }
+
+        // Skip the rest of the line.
+        for (; !is_end_of_line(*c); ++c);
+
+        // Copy the raw string including the comment, without the trailing newlines.
+        if (c > ptr)
+            gline.raw.assign(ptr, c);
+
+        // Skip the trailing newlines.
+        if (*c == '\r')
+            ++c;
+        if (*c == '\n')
+            ++c;
+
+        return c;
+    }
+
+    static bool        is_whitespace(char c) { return c == ' ' || c == '\t'; }
+    static bool        is_end_of_line(char c) { return c == '\r' || c == '\n' || c == 0; }
+    static bool        is_end_of_gcode_line(char c) { return c == ';' || is_end_of_line(c); }
+    static bool        is_end_of_word(char c) { return is_whitespace(c) || is_end_of_gcode_line(c); }
+    static const char* skip_whitespaces(const char* c) {
+        for (; is_whitespace(*c); ++c)
+            ; // silence -Wempty-body
+        return c;
+    }
+    static const char* skip_word(const char* c) {
+        for (; !is_end_of_word(*c); ++c)
+            ; // silence -Wempty-body
+        return c;
+    }
+};
 
 static std::string_view trim(const std::string_view& str)
 {
@@ -27,8 +171,348 @@ static std::string_view uncomment(const std::string_view& str)
     return (!str.empty() && str[0] == ';') ? trim(str.substr(1)) : str;
 }
 
-BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_file)
+template<typename Integer>
+static void to_int(const std::string_view& str, Integer& out) {
+    const std::from_chars_result result = std::from_chars(str.data(), str.data() + str.size(), out);
+    if (result.ec == std::errc::invalid_argument || result.ec == std::errc::result_out_of_range)
+        out = 0;
+}
+
+BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_file, const base::BinarizerConfig& config)
 {
+    using namespace std::literals;
+    static constexpr const std::string_view GeneratedByPrusaSlicer = "generated by PrusaSlicer"sv;
+
+    static constexpr const std::string_view PrinterModel = "printer_model"sv;
+    static constexpr const std::string_view FilamentType = "filament_type"sv;
+    static constexpr const std::string_view NozzleDiameter = "nozzle_diameter"sv;
+    static constexpr const std::string_view FilamentUsedMm = "filament used [mm]"sv;
+    static constexpr const std::string_view FilamentUsedG = "filament used [g]"sv;
+    static constexpr const std::string_view EstimatedPrintingTimeNormal = "estimated printing time (normal mode)"sv;
+    static constexpr const std::string_view FilamentUsedCm3 = "filament used [cm3]"sv;
+    static constexpr const std::string_view FilamentCost = "filament cost"sv;
+    static constexpr const std::string_view TotalFilamentUsedG = "total filament used [g]"sv;
+    static constexpr const std::string_view TotalFilamentCost = "total filament cost"sv;
+    static constexpr const std::string_view EstimatedPrintingTimeSilent = "estimated printing time (silent mode)"sv;
+    static constexpr const std::string_view Estimated1stLayerPrintingTimeNormal = "estimated first layer printing time (normal mode)"sv;
+    static constexpr const std::string_view Estimated1stLayerPrintingTimeSilent = "estimated first layer printing time (silent mode)"sv;
+
+    static constexpr const std::string_view ThumbnailPNGBegin = "thumbnail begin"sv;
+    static constexpr const std::string_view ThumbnailPNGEnd = "thumbnail end"sv;
+    static constexpr const std::string_view ThumbnailJPGBegin = "thumbnail_JPG begin"sv;
+    static constexpr const std::string_view ThumbnailJPGEnd = "thumbnail_JPG end"sv;
+    static constexpr const std::string_view ThumbnailQOIBegin = "thumbnail_QOI begin"sv;
+    static constexpr const std::string_view ThumbnailQOIEnd = "thumbnail_QOI end"sv;
+
+    static constexpr const std::string_view PrusaSlicerConfig = "prusaslicer_config"sv;
+
+    auto search_metadata_value = [&](const std::string_view& str, const std::string_view& key) {
+        std::string ret;
+        if (str.find(key) == 0) {
+            const size_t pos = str.find("=");
+            if (pos != std::string_view::npos)
+                ret = trim(str.substr(pos + 1));
+        }
+        return ret;
+    };
+    auto extract_thumbnail_rect = [](const std::string_view& str) {
+        std::pair<uint16_t, uint16_t> ret = { 0, 0 };
+        const size_t pos = str.find('x');
+        if (pos != std::string_view::npos) {
+            to_int(str.substr(0, pos), ret.first);
+            to_int(str.substr(pos + 1), ret.second);
+        }
+      return ret;
+    };
+
+    EResult res = is_valid_binary_gcode(src_file);
+    if (res == EResult::Success)
+        return EResult::AlreadyBinarized;
+
+    Binarizer binarizer;
+    binarizer.set_enabled(true);
+    BinaryData& binary_data = binarizer.get_binary_data();
+
+    std::string printer_model;
+    std::string filament_type;
+    std::string nozzle_diameter;
+    std::string filament_used_mm;
+    std::string filament_used_g;
+    std::string estimated_printing_time_normal;
+    std::string filament_used_cm3;
+    std::string filament_cost;
+    std::string total_filament_used_g;
+    std::string total_filament_cost;
+    std::string estimated_printing_time_silent;
+    std::string estimated_1st_layer_printing_time_normal;
+    std::string estimated_1st_layer_printing_time_silent;
+
+    std::optional<EThumbnailFormat> reading_thumbnail;
+    size_t curr_thumbnail_data_size = 0;
+    size_t curr_thumbnail_data_loaded = 0;
+
+    bool producer_found = false;
+    bool reading_config = false;
+
+    std::vector<size_t> processed_lines;
+
+    EResult parse_res = EResult::Success;
+    GCodeReader parser(src_file);
+    size_t lines_counter = 0;
+    if (!parser.parse([&](GCodeReader& r, const GCodeReader::GCodeLine& line) {
+        if (parse_res != EResult::Success)
+            r.quit_parsing();
+
+        const std::string_view sv_line = uncomment(trim(line.raw));
+        if (sv_line.empty()) {
+            processed_lines.emplace_back(lines_counter++);
+            return;
+        }
+
+        // update file metadata
+        size_t pos = sv_line.find(GeneratedByPrusaSlicer);
+        if (pos != std::string_view::npos) {
+            std::string_view version = trim(sv_line.substr(pos + GeneratedByPrusaSlicer.length()));
+            pos = version.find(" ");
+            if (pos != std::string_view::npos)
+                version = version.substr(0, pos);
+            binary_data.file_metadata.raw_data.emplace_back("Producer", "PrusaSlicer " + std::string(version));
+            producer_found = true;
+            processed_lines.emplace_back(lines_counter++);
+            return;
+        }
+
+        // collect print + printer metadata
+        // to keep the proper order they will be set into binary_data later
+        auto collect_metadata = [&](const std::string_view& key, std::string& value, bool shared_in_config = false, bool duplicated = false) {
+            if (duplicated || value.empty()) {
+                const std::string str = search_metadata_value(sv_line, key);
+                if (!str.empty()) {
+                    if (value.empty())
+                        value = str;
+                    if (!shared_in_config || !reading_config)
+                        processed_lines.emplace_back(lines_counter++);
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        if (collect_metadata(PrinterModel, printer_model, true)) return;
+        if (collect_metadata(FilamentType, filament_type, true)) return;
+        if (collect_metadata(NozzleDiameter, nozzle_diameter, true)) return;
+        if (collect_metadata(FilamentUsedMm, filament_used_mm, false, true)) return;
+        if (collect_metadata(FilamentUsedG, filament_used_g, false, true)) return;
+        if (collect_metadata(EstimatedPrintingTimeNormal, estimated_printing_time_normal, false, true)) return;
+        if (collect_metadata(FilamentUsedCm3, filament_used_cm3)) return;
+        if (collect_metadata(FilamentCost, filament_cost)) return;
+        if (collect_metadata(TotalFilamentUsedG, total_filament_used_g)) return;
+        if (collect_metadata(TotalFilamentCost, total_filament_cost)) return;
+        if (collect_metadata(EstimatedPrintingTimeSilent, estimated_printing_time_silent)) return;
+        if (collect_metadata(Estimated1stLayerPrintingTimeNormal, estimated_1st_layer_printing_time_normal)) return;
+        if (collect_metadata(Estimated1stLayerPrintingTimeSilent, estimated_1st_layer_printing_time_silent)) return;
+
+        // update slicer metadata
+        if (!reading_config) {
+            if (search_metadata_value(sv_line, PrusaSlicerConfig) == "begin") {
+                reading_config = true;
+                processed_lines.emplace_back(lines_counter++);
+                return;
+            }
+        }
+        else {
+            if (search_metadata_value(sv_line, PrusaSlicerConfig) == "end") {
+                reading_config = false;
+                processed_lines.emplace_back(lines_counter++);
+                return;
+            }
+            else {
+                const size_t pos = sv_line.find("=");
+                if (pos == std::string_view::npos) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                const std::string_view key = trim(sv_line.substr(0, pos));
+                const std::string_view value = trim(sv_line.substr(pos + 1));
+                if (key.empty()) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                binary_data.slicer_metadata.raw_data.emplace_back(std::string(key), std::string(value));
+                processed_lines.emplace_back(lines_counter++);
+                return;
+            }
+        }
+
+        // update thumbnails
+        if (!reading_thumbnail.has_value()) {
+            std::string_view sv_thumbnail_str;
+            if (sv_line.find(ThumbnailPNGBegin) == 0) {
+                reading_thumbnail = EThumbnailFormat::PNG;
+                sv_thumbnail_str = trim(sv_line.substr(ThumbnailPNGBegin.size()));
+            }
+            else if (sv_line.find(ThumbnailJPGBegin) == 0) {
+                reading_thumbnail = EThumbnailFormat::JPG;
+                sv_thumbnail_str = trim(sv_line.substr(ThumbnailJPGBegin.size()));
+            }
+            else if (sv_line.find(ThumbnailQOIBegin) == 0) {
+                reading_thumbnail = EThumbnailFormat::QOI;
+                sv_thumbnail_str = trim(sv_line.substr(ThumbnailQOIBegin.size()));
+            }
+            if (reading_thumbnail.has_value()) {
+                ThumbnailBlock& thumbnail = binary_data.thumbnails.emplace_back(ThumbnailBlock());
+                thumbnail.format = (uint16_t)*reading_thumbnail;
+                pos = sv_thumbnail_str.find(" ");
+                if (pos == std::string_view::npos) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                const std::string_view sv_rect_str = trim(sv_thumbnail_str.substr(0, pos));
+                std::pair<uint16_t, uint16_t> rect = extract_thumbnail_rect(sv_rect_str);
+                if (rect.first == 0 || rect.second == 0) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                thumbnail.width = rect.first;
+                thumbnail.height = rect.second;
+                const std::string_view sv_data_size_str = trim(sv_thumbnail_str.substr(pos + 1));
+                size_t data_size;
+                to_int(sv_data_size_str, data_size);
+                if (data_size == 0) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                curr_thumbnail_data_size = data_size;
+                curr_thumbnail_data_loaded = 0;
+                thumbnail.data.resize(data_size);
+                processed_lines.emplace_back(lines_counter++);
+                return;
+            }
+        }
+        else {
+            bool thumbnail_end = false;
+            if (sv_line.find(ThumbnailPNGEnd) == 0) {
+                if (*reading_thumbnail != EThumbnailFormat::PNG) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                thumbnail_end = true;
+            }
+            else if (sv_line.find(ThumbnailJPGEnd) == 0) {
+                if (*reading_thumbnail != EThumbnailFormat::JPG) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                thumbnail_end = true;
+            }
+            else if (sv_line.find(ThumbnailQOIEnd) == 0) {
+                if (*reading_thumbnail != EThumbnailFormat::QOI) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                thumbnail_end = true;
+            }
+
+            if (thumbnail_end) {
+                reading_thumbnail.reset();
+                if (curr_thumbnail_data_loaded != curr_thumbnail_data_size) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                ThumbnailBlock& thumbnail = binary_data.thumbnails.back();
+                if (thumbnail.data.size() > curr_thumbnail_data_loaded)
+                    thumbnail.data.resize(curr_thumbnail_data_loaded);
+                std::string decoded;
+                decoded.resize(boost::beast::detail::base64::decoded_size(thumbnail.data.size()));
+                decoded.resize(boost::beast::detail::base64::decode((void*)&decoded[0], (const char*)thumbnail.data.data(), thumbnail.data.size()).first);
+                thumbnail.data.clear();
+                thumbnail.data.insert(thumbnail.data.end(), decoded.begin(), decoded.end());
+                processed_lines.emplace_back(lines_counter++);
+                return;
+            }
+            else {
+                if (curr_thumbnail_data_loaded + sv_line.size() > curr_thumbnail_data_size) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                ThumbnailBlock& thumbnail = binary_data.thumbnails.back();
+                thumbnail.data.insert(thumbnail.data.begin() + curr_thumbnail_data_loaded, sv_line.begin(), sv_line.end());
+                curr_thumbnail_data_loaded += sv_line.size();
+                processed_lines.emplace_back(lines_counter++);
+                return;
+            }
+        }
+
+        ++lines_counter;
+    }))
+        return EResult::ReadError;
+
+    if (parse_res != EResult::Success)
+        // propagate error
+        return parse_res;
+
+    if (reading_config)
+        return EResult::InvalidAsciiGCodeFile;
+
+    if (reading_thumbnail.has_value())
+        return EResult::InvalidAsciiGCodeFile;
+
+    if (!producer_found)
+        return EResult::InvalidAsciiGCodeFile;
+
+    auto append_metadata = [](std::vector<std::pair<std::string, std::string>>& dst, const std::string& key, const std::string& value) {
+        if (!value.empty()) dst.emplace_back(key, value);
+    };
+
+    // update printer metadata
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(PrinterModel), printer_model);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(FilamentType), filament_type);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(NozzleDiameter), nozzle_diameter);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(FilamentUsedMm), filament_used_mm);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(FilamentUsedG), filament_used_g);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(EstimatedPrintingTimeNormal), estimated_printing_time_normal);
+
+    // update print metadata
+    append_metadata(binary_data.print_metadata.raw_data, std::string(FilamentUsedMm), filament_used_mm);
+    append_metadata(binary_data.print_metadata.raw_data, std::string(FilamentUsedCm3), filament_used_cm3);
+    append_metadata(binary_data.print_metadata.raw_data, std::string(FilamentUsedG), filament_used_g);
+    append_metadata(binary_data.print_metadata.raw_data, std::string(FilamentCost), filament_cost);
+    append_metadata(binary_data.print_metadata.raw_data, std::string(TotalFilamentUsedG), total_filament_used_g);
+    append_metadata(binary_data.print_metadata.raw_data, std::string(TotalFilamentCost), total_filament_cost);
+    append_metadata(binary_data.print_metadata.raw_data, std::string(EstimatedPrintingTimeNormal), estimated_printing_time_normal);
+    append_metadata(binary_data.print_metadata.raw_data, std::string(EstimatedPrintingTimeSilent), estimated_printing_time_silent);
+    append_metadata(binary_data.print_metadata.raw_data, std::string(Estimated1stLayerPrintingTimeNormal), estimated_1st_layer_printing_time_normal);
+    append_metadata(binary_data.print_metadata.raw_data, std::string(Estimated1stLayerPrintingTimeSilent), estimated_1st_layer_printing_time_silent);
+
+    res = binarizer.initialize(dst_file, config);
+    if (res != EResult::Success)
+        // propagate error
+        return res;
+
+    // reparse the file to extract the gcode
+    rewind(&src_file);
+    parse_res = EResult::Success;
+    lines_counter = 0;
+    if (!parser.parse([&](GCodeReader& r, const GCodeReader::GCodeLine& line) {
+        if (parse_res != EResult::Success)
+            r.quit_parsing();
+
+        if (std::find(processed_lines.begin(), processed_lines.end(), lines_counter) == processed_lines.end())
+          binarizer.append_gcode(line.raw + "\n");
+
+        ++lines_counter;
+    }))
+        return EResult::ReadError;
+
+    if (parse_res != EResult::Success)
+        // propagate error
+        return parse_res;
+
+    res = binarizer.finalize();
+    if (res != EResult::Success)
+        // propagate error
+        return res;
+
     return EResult::Success;
 }
 
