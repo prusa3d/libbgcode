@@ -1198,4 +1198,123 @@ EResult SlicerMetadataBlock::read_data(FILE& file, const FileHeader& file_header
     return EResult::Success;
 }
 
+bool Binarizer::is_enabled() const { return m_enabled; }
+void Binarizer::set_enabled(bool enable) { m_enabled = enable; }
+BinaryData& Binarizer::get_binary_data() { return m_binary_data; }
+const BinaryData& Binarizer::get_binary_data() const { return m_binary_data; }
+size_t Binarizer::get_max_gcode_cache_size() const { return m_gcode_cache_size; }
+void Binarizer::set_max_gcode_cache_size(size_t size) { m_gcode_cache_size = size; }
+
+EResult Binarizer::initialize(FILE& file, const BinarizerConfig& config)
+{
+    if (!m_enabled)
+        return EResult::Success;
+
+    m_file = &file;
+    m_config = config;
+
+    // save header
+    FileHeader file_header;
+    file_header.checksum_type = (uint16_t)m_config.checksum;
+    EResult res = file_header.write(*m_file);
+    if (res != EResult::Success)
+        // propagate error
+        return res;
+
+    // save file metadata block
+    res = m_binary_data.file_metadata.write(*m_file, m_config.compression.file_metadata, m_config.checksum);
+    if (res != EResult::Success)
+        // propagate error
+        return res;
+
+    // save printer metadata block
+    res = m_binary_data.printer_metadata.write(*m_file, m_config.compression.printer_metadata, m_config.checksum);
+    if (res != EResult::Success)
+        // propagate error
+        return res;
+
+    // save thumbnail blocks
+    for (const ThumbnailBlock& block : m_binary_data.thumbnails) {
+        res = block.write(*m_file, m_config.checksum);
+        if (res != EResult::Success)
+            // propagate error
+            return res;
+    }
+
+    // save print metadata block
+    res = m_binary_data.print_metadata.write(*m_file, m_config.compression.print_metadata, m_config.checksum);
+    if (res != EResult::Success)
+        // propagate error
+        return res;
+
+    // save slicer metadata block
+    res = m_binary_data.slicer_metadata.write(*m_file, m_config.compression.slicer_metadata, m_config.checksum);
+    if (res != EResult::Success)
+        // propagate error
+        return res;
+
+    return EResult::Success;
+}
+
+static EResult write_gcode_block(FILE& file, const std::string& raw_data, const BinarizerConfig& config)
+{
+    GCodeBlock block;
+    block.encoding_type = (uint16_t)config.gcode_encoding;
+    block.raw_data = raw_data;
+    return block.write(file, config.compression.gcode, config.checksum);
+}
+
+EResult Binarizer::append_gcode(const std::string& gcode)
+{
+    if (gcode.empty())
+        return EResult::Success;
+
+    assert(m_file != nullptr);
+    if (m_file == nullptr)
+        return EResult::WriteError;
+
+    auto it_begin = gcode.begin();
+    do {
+        const size_t begin_pos = std::distance(gcode.begin(), it_begin);
+        const size_t end_line_pos = gcode.find_first_of('\n', begin_pos);
+        if (end_line_pos == std::string::npos)
+            return EResult::WriteError;
+
+        const size_t line_size = 1 + end_line_pos - begin_pos;
+        if (line_size + m_gcode_cache.length() > m_gcode_cache_size) {
+            if (!m_gcode_cache.empty()) {
+                const EResult res = write_gcode_block(*m_file, m_gcode_cache, m_config);
+                if (res != EResult::Success)
+                    // propagate error
+                    return res;
+                m_gcode_cache.clear();
+            }
+        }
+
+        if (line_size > m_gcode_cache_size)
+            return EResult::WriteError;
+
+        m_gcode_cache.insert(m_gcode_cache.end(), it_begin, it_begin + line_size);
+        it_begin += line_size;
+    } while (it_begin != gcode.end());
+
+    return EResult::Success;
+}
+
+EResult Binarizer::finalize()
+{
+    if (!m_enabled)
+        return EResult::Success;
+
+    // save gcode cache, if not empty
+    if (!m_gcode_cache.empty()) {
+        const EResult res = write_gcode_block(*m_file, m_gcode_cache, m_config);
+        if (res != EResult::Success)
+            // propagate error
+            return res;
+    }
+
+    return EResult::Success;
+}
+
 }} // namespace bgcode
