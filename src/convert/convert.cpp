@@ -8,6 +8,25 @@ using namespace core;
 using namespace base;
 namespace convert {
 
+static std::string_view trim(const std::string_view& str)
+{
+    if (str.empty())
+        return std::string_view();
+    size_t start = 0;
+    while (start < str.size() - 1 && (str[start] == ' ' || str[start] == '\t')) { ++start; }
+    size_t end = str.size() - 1;
+    while (end > 0 && (str[end] == ' ' || str[end] == '\t')) { --end; }
+    if ((start == end && (str[end] == ' ' || str[end] == '\t')) || (start > end))
+        return std::string_view();
+    else
+        return std::string_view(&str[start], end - start + 1);
+}
+
+static std::string_view uncomment(const std::string_view& str)
+{
+    return (!str.empty() && str[0] == ';') ? trim(str.substr(1)) : str;
+}
+
 BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_file)
 {
     return EResult::Success;
@@ -110,7 +129,7 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
         case EThumbnailFormat::JPG: { format = "thumbnail_JPG"; break; }
         case EThumbnailFormat::QOI: { format = "thumbnail_QOI"; break; }
         }
-        if (!write_line(";\n; " + format + " begin " + std::to_string(thumbnail_block.width) + "x" + std::to_string(thumbnail_block.height) +
+        if (!write_line("\n;\n; " + format + " begin " + std::to_string(thumbnail_block.width) + "x" + std::to_string(thumbnail_block.height) +
             " " + std::to_string(encoded.length()) + "\n"))
             return EResult::WriteError;
         while (encoded.size() > max_row_length) {
@@ -122,7 +141,7 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
             if (!write_line("; " + encoded + "\n"))
                 return EResult::WriteError;
         }
-        if (!write_line("; " + format + " end\n;\n\n"))
+        if (!write_line("; " + format + " end\n;\n"))
             return EResult::WriteError;
 
         restore_position = ftell(&src_file);
@@ -135,6 +154,29 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
     //
     // convert gcode blocks
     //
+    auto remove_empty_lines = [](const std::string& data) {
+        std::string ret;
+        auto begin_it = data.begin();
+        auto end_it = data.begin();
+        while (end_it != data.end()) {
+            while (end_it != data.end() && *end_it != '\n') {
+                ++end_it;
+            }
+
+          const size_t pos = std::distance(data.begin(), begin_it);
+          const size_t line_length = std::distance(begin_it, end_it);
+          const std::string_view original_line(&data[pos], line_length);
+          const std::string_view reduced_line = uncomment(trim(original_line));
+          if (!reduced_line.empty())
+              ret += std::string(original_line) + "\n";
+          begin_it = ++end_it;
+        }
+
+        return ret;
+    };
+
+    if (!write_line("\n"))
+        return EResult::WriteError;
     res = skip_block_content(src_file, file_header, block_header);
     if (res != EResult::Success)
         // propagate error
@@ -149,8 +191,11 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
         if (res != EResult::Success)
             // propagate error
             return res;
-        if (!write_line(block.raw_data))
-            return EResult::WriteError;
+        const std::string out_str = remove_empty_lines(block.raw_data);
+        if (!out_str.empty()) {
+            if (!write_line(out_str))
+                return EResult::WriteError;
+        }
         if (ftell(&src_file) == file_size)
             break;
         res = read_next_block_header(src_file, file_header, block_header, verify_checksum);
