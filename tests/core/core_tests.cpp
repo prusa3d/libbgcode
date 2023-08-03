@@ -103,8 +103,7 @@ TEST_CASE("Checksum max cache size", "[Core]")
      FILE* file = fopen(filename.c_str(), "rb");
      REQUIRE(file != nullptr);
      ScopedFile scoped_file(file);
-     const EResult res = is_valid_binary_gcode(*file);
-     REQUIRE(res == EResult::Success);
+     REQUIRE(is_valid_binary_gcode(*file) == EResult::Success);
 
      fseek(file, 0, SEEK_END);
      const long file_size = ftell(file);
@@ -172,7 +171,7 @@ TEST_CASE("Checksum max cache size", "[Core]")
          // move to next block header
          REQUIRE(skip_block_content(*file, file_header, block_header) == EResult::Success);
          if (ftell(file) == file_size)
-           break;
+             break;
      } while (true);
  }
 
@@ -189,8 +188,7 @@ TEST_CASE("Checksum max cache size", "[Core]")
      FILE* file = fopen(filename.c_str(), "rb");
      REQUIRE(file != nullptr);
      ScopedFile scoped_file(file);
-     const EResult res = is_valid_binary_gcode(*file);
-     REQUIRE(res == EResult::Success);
+     REQUIRE(is_valid_binary_gcode(*file) == EResult::Success);
 
      fseek(file, 0, SEEK_END);
      const long file_size = ftell(file);

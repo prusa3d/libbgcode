@@ -138,7 +138,7 @@ struct BlockHeader
 };
 
 // Returns a string description of the given result
-extern BGCODE_CORE_EXPORT std::string translate_result(EResult result);
+extern BGCODE_CORE_EXPORT std::string_view translate_result(EResult result);
 
 // Get the max size of the cache used to calculate checksums, in bytes
 extern BGCODE_CORE_EXPORT size_t get_checksum_max_cache_size();
