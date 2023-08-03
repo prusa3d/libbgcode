@@ -7,6 +7,7 @@ extern "C" {
 }
 #include <zlib.h>
 
+#include <cstring>
 #include <cassert>
 
 namespace bgcode {
