@@ -75,6 +75,8 @@ if (${PROJECT_NAME}_BUILD_COMPONENT_Base)
     add_library(${_libname}_base
         src/base/base.cpp
         src/base/base.hpp
+        src/base/meatpack.cpp
+        src/base/meatpack.hpp
         # Add more source files here if needed
     )
 
