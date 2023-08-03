@@ -243,36 +243,37 @@ BGCODE_CORE_EXPORT void set_checksum_max_cache_size(size_t size) { g_checksum_ma
 
 BGCODE_CORE_EXPORT std::string_view translate_result(EResult result)
 {
+    using namespace std::literals;
     switch (result)
     {
-    case EResult::Success:                     { return "Success"; }
-    case EResult::ReadError:                   { return "Read error"; }
-    case EResult::WriteError:                  { return "Write error"; }
-    case EResult::InvalidMagicNumber:          { return "Invalid magic number"; }
-    case EResult::InvalidVersionNumber:        { return "Invalid version number"; }
-    case EResult::InvalidChecksumType:         { return "Invalid checksum type"; }
-    case EResult::InvalidBlockType:            { return "Invalid block type"; }
-    case EResult::InvalidCompressionType:      { return "Invalid compression type"; }
-    case EResult::InvalidMetadataEncodingType: { return "Invalid metadata encoding type"; }
-    case EResult::InvalidGCodeEncodingType:    { return "Invalid gcode encoding type"; }
-    case EResult::DataCompressionError:        { return "Data compression error"; }
-    case EResult::DataUncompressionError:      { return "Data uncompression error"; }
-    case EResult::MetadataEncodingError:       { return "Metadata encoding error"; }
-    case EResult::MetadataDecodingError:       { return "Metadata decoding error"; }
-    case EResult::GCodeEncodingError:          { return "GCode encoding error"; }
-    case EResult::GCodeDecodingError:          { return "GCode decoding error"; }
-    case EResult::BlockNotFound:               { return "Block not found"; }
-    case EResult::InvalidChecksum:             { return "Invalid checksum"; }
-    case EResult::InvalidThumbnailFormat:      { return "Invalid thumbnail format"; }
-    case EResult::InvalidThumbnailWidth:       { return "Invalid thumbnail width"; }
-    case EResult::InvalidThumbnailHeight:      { return "Invalid thumbnail height"; }
-    case EResult::InvalidThumbnailDataSize:    { return "Invalid thumbnail data size"; }
-    case EResult::InvalidBinaryGCodeFile:      { return "Invalid binary GCode file"; }
-    case EResult::InvalidAsciiGCodeFile:       { return "Invalid ascii GCode file"; }
-    case EResult::InvalidSequenceOfBlocks:     { return "Invalid sequence of blocks"; }
-    case EResult::AlreadyBinarized:            { return "Already binarized"; }
+    case EResult::Success:                     { return "Success"sv; }
+    case EResult::ReadError:                   { return "Read error"sv; }
+    case EResult::WriteError:                  { return "Write error"sv; }
+    case EResult::InvalidMagicNumber:          { return "Invalid magic number"sv; }
+    case EResult::InvalidVersionNumber:        { return "Invalid version number"sv; }
+    case EResult::InvalidChecksumType:         { return "Invalid checksum type"sv; }
+    case EResult::InvalidBlockType:            { return "Invalid block type"sv; }
+    case EResult::InvalidCompressionType:      { return "Invalid compression type"sv; }
+    case EResult::InvalidMetadataEncodingType: { return "Invalid metadata encoding type"sv; }
+    case EResult::InvalidGCodeEncodingType:    { return "Invalid gcode encoding type"sv; }
+    case EResult::DataCompressionError:        { return "Data compression error"sv; }
+    case EResult::DataUncompressionError:      { return "Data uncompression error"sv; }
+    case EResult::MetadataEncodingError:       { return "Metadata encoding error"sv; }
+    case EResult::MetadataDecodingError:       { return "Metadata decoding error"sv; }
+    case EResult::GCodeEncodingError:          { return "GCode encoding error"sv; }
+    case EResult::GCodeDecodingError:          { return "GCode decoding error"sv; }
+    case EResult::BlockNotFound:               { return "Block not found"sv; }
+    case EResult::InvalidChecksum:             { return "Invalid checksum"sv; }
+    case EResult::InvalidThumbnailFormat:      { return "Invalid thumbnail format"sv; }
+    case EResult::InvalidThumbnailWidth:       { return "Invalid thumbnail width"sv; }
+    case EResult::InvalidThumbnailHeight:      { return "Invalid thumbnail height"sv; }
+    case EResult::InvalidThumbnailDataSize:    { return "Invalid thumbnail data size"sv; }
+    case EResult::InvalidBinaryGCodeFile:      { return "Invalid binary GCode file"sv; }
+    case EResult::InvalidAsciiGCodeFile:       { return "Invalid ascii GCode file"sv; }
+    case EResult::InvalidSequenceOfBlocks:     { return "Invalid sequence of blocks"sv; }
+    case EResult::AlreadyBinarized:            { return "Already binarized"sv; }
     }
-    return std::string();
+    return std::string_view();
 }
 
 BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents)
