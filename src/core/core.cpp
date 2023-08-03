@@ -241,7 +241,7 @@ EResult BlockHeader::read(FILE& file)
 BGCODE_CORE_EXPORT size_t get_checksum_max_cache_size() { return g_checksum_max_cache_size; }
 BGCODE_CORE_EXPORT void set_checksum_max_cache_size(size_t size) { g_checksum_max_cache_size = size; }
 
-BGCODE_CORE_EXPORT std::string translate_result(EResult result)
+BGCODE_CORE_EXPORT std::string_view translate_result(EResult result)
 {
     switch (result)
     {
