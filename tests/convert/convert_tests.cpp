@@ -5,7 +5,7 @@
 #include <fstream>
 
 using namespace bgcode::core;
-using namespace bgcode::base;
+using namespace bgcode::binarize;
 using namespace bgcode::convert;
 
 class ScopedFile
