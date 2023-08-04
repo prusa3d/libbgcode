@@ -96,7 +96,7 @@ public:
 
     EChecksumType get_type() const;
 
-    // Appends the given data to the cache and performs a checksum update if 
+    // Appends the given data to the cache and performs a checksum update if
     // the size of the cache exceeds the max checksum cache size.
     void append(const std::vector<uint8_t>& data);
     // Returns true if the given checksum is equal to this one
@@ -125,6 +125,7 @@ struct FileHeader
 
 struct BlockHeader
 {
+    long int position{ 0 };
     uint16_t type{ 0 };
     uint16_t compression{ 0 };
     uint32_t uncompressed_size{ 0 };
@@ -133,7 +134,7 @@ struct BlockHeader
     // Updates the given checksum with the data of this BlockHeader
     void update_checksum(Checksum& checksum) const;
 
-    EResult write(FILE& file) const;
+    EResult write(FILE& file);
     EResult read(FILE& file);
 };
 

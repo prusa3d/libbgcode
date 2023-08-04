@@ -201,8 +201,9 @@ void BlockHeader::update_checksum(Checksum& checksum) const
         checksum.append(encode((const void*)&compressed_size, sizeof(compressed_size)));
 }
 
-EResult BlockHeader::write(FILE& file) const
+EResult BlockHeader::write(FILE& file)
 {
+    position = ftell(&file);
     if (!write_to_file(file, (const void*)&type, sizeof(type)))
         return EResult::WriteError;
     if (!write_to_file(file, (const void*)&compression, sizeof(compression)))
@@ -218,6 +219,7 @@ EResult BlockHeader::write(FILE& file) const
 
 EResult BlockHeader::read(FILE& file)
 {
+    position = ftell(&file);
     if (!read_from_file(file, (void*)&type, sizeof(type)))
         return EResult::ReadError;
     if (type >= block_types_count())
