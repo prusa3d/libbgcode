@@ -1,5 +1,5 @@
-#ifndef BGCODE_MEATPACK_HPP
-#define BGCODE_MEATPACK_HPP
+#ifndef _BGCODE_BINARIZE_MEATPACK_HPP_
+#define _BGCODE_BINARIZE_MEATPACK_HPP_
 
 #include <cstdint>
 #include <vector>
@@ -9,6 +9,7 @@
 //
 // Adaptation of MeatPack G-Code Compression taken from:
 // https://github.com/scottmudge/OctoPrint-MeatPack/blob/master/OctoPrint_MeatPack/meatpack.py
+// https://github.com/bubnikv/OctoPrint-MeatPack/blob/master/OctoPrint_MeatPack/meatpack.py
 // https://github.com/scottmudge/Prusa-Firmware-MeatPack/blob/MK3_sm_MeatPack/Firmware/meatpack.h
 // https://github.com/scottmudge/Prusa-Firmware-MeatPack/blob/MK3_sm_MeatPack/Firmware/meatpack.cpp
 // 
@@ -50,4 +51,4 @@ extern void unbinarize(const std::vector<uint8_t>& src, std::string& dst);
 
 } // namespace MeatPack
 
-#endif // BGCODE_MEATPACK_HPP
+#endif // _BGCODE_BINARIZE_MEATPACK_HPP_

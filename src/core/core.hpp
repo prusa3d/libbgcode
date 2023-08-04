@@ -1,5 +1,5 @@
-#ifndef BGCODE_CORE_HPP
-#define BGCODE_CORE_HPP
+#ifndef _BGCODE_CORE_HPP_
+#define _BGCODE_CORE_HPP_
 
 #include "core/export.h"
 
@@ -199,4 +199,4 @@ extern BGCODE_CORE_EXPORT size_t block_content_size(const FileHeader& file_heade
 
 }} // bgcode::core
 
-#endif // BGCODE_CORE_HPP
+#endif // _BGCODE_CORE_HPP_

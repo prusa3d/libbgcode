@@ -1,4 +1,4 @@
-#include "base.hpp"
+#include "binarize.hpp"
 #include "meatpack.hpp"
 
 extern "C" {
@@ -12,7 +12,7 @@ extern "C" {
 
 namespace bgcode {
 using namespace core;
-namespace base {
+namespace binarize {
 
 static bool write_to_file(FILE& file, const void* data, size_t data_size)
 {

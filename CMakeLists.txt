@@ -11,7 +11,7 @@ string(REPLACE "lib" "" _libname ${_libname})
 
 option(${PROJECT_NAME}_BUILD_TESTS "Build unit tests" ON)
 
-option(${PROJECT_NAME}_BUILD_COMPONENT_Base "Include Base component in the library" ON)
+option(${PROJECT_NAME}_BUILD_COMPONENT_Binarize "Include Binarize component in the library" ON)
 
 if (NOT CMAKE_DEBUG_POSTFIX)
     set(CMAKE_DEBUG_POSTFIX "d")
@@ -19,23 +19,23 @@ endif ()
 
 include(CMakeDependentOption)
 cmake_dependent_option(${PROJECT_NAME}_BUILD_COMPONENT_Convert "Include Convert component in the library" ON 
-                       "${PROJECT_NAME}_BUILD_COMPONENT_Base" OFF)
+                       "${PROJECT_NAME}_BUILD_COMPONENT_Binarize" OFF)
 
 set(_selected_components "Core")
 set(_selected_libs "${_libname}_core")
 
 set(Core_DOWNSTREAM_DEPS "")
-set(Base_DOWNSTREAM_DEPS "")
+set(Binarize_DOWNSTREAM_DEPS "")
 set(Convert_DOWNSTREAM_DEPS "")
-if (${PROJECT_NAME}_BUILD_COMPONENT_Base)
+if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
     set(heatshrink_VERSION 0.4)
     set(ZLIB_VERSION 1.0)
     find_package(heatshrink ${heatshrink_VERSION} REQUIRED)
     find_package(ZLIB ${ZLIB_VERSION} REQUIRED)
     
     if (NOT BUILD_SHARED_LIBS)
-        list(APPEND Base_DOWNSTREAM_DEPS "heatshrink_${heatshrink_VERSION}")
-        list(APPEND Base_DOWNSTREAM_DEPS "ZLIB_${ZLIB_VERSION}")
+        list(APPEND Binarize_DOWNSTREAM_DEPS "heatshrink_${heatshrink_VERSION}")
+        list(APPEND Binarize_DOWNSTREAM_DEPS "ZLIB_${ZLIB_VERSION}")
         # append all the libs that are required privately for Core
     endif ()
 endif()
@@ -70,32 +70,32 @@ target_include_directories(${_libname}_core
         $<INSTALL_INTERFACE:include>
 )
 
-if (${PROJECT_NAME}_BUILD_COMPONENT_Base)
-    # Base component
-    add_library(${_libname}_base
-        src/base/base.cpp
-        src/base/base.hpp
-        src/base/meatpack.cpp
-        src/base/meatpack.hpp
+if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
+    # Binarize component
+    add_library(${_libname}_binarize
+        src/binarize/binarize.cpp
+        src/binarize/binarize.hpp
+        src/binarize/meatpack.cpp
+        src/binarize/meatpack.hpp
         # Add more source files here if needed
     )
 
-    generate_export_header(${_libname}_base
-        EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/base/export.h
+    generate_export_header(${_libname}_binarize
+        EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/binarize/export.h
     )
 
-    target_include_directories(${_libname}_base
+    target_include_directories(${_libname}_binarize
         PUBLIC
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
             $<INSTALL_INTERFACE:include>
     )
 
-    target_link_libraries(${_libname}_base PRIVATE heatshrink::heatshrink_dynalloc ZLIB::ZLIB)
-    target_link_libraries(${_libname}_base PUBLIC ${_libname}_core)
+    target_link_libraries(${_libname}_binarize PRIVATE heatshrink::heatshrink_dynalloc ZLIB::ZLIB)
+    target_link_libraries(${_libname}_binarize PUBLIC ${_libname}_core)
 
-    list(APPEND _selected_components Base)
-    list(APPEND _selected_libs ${_libname}_base)
+    list(APPEND _selected_components Binarize)
+    list(APPEND _selected_libs ${_libname}_binarize)
 endif ()
 
 if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
@@ -118,7 +118,7 @@ if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
     )
 
     target_link_libraries(${_libname}_convert PUBLIC  ${_libname}_core)
-    target_link_libraries(${_libname}_convert PRIVATE ${_libname}_base Boost::boost)
+    target_link_libraries(${_libname}_convert PRIVATE ${_libname}_binarize Boost::boost)
 
     list(APPEND _selected_components Convert)
     list(APPEND _selected_libs ${_libname}_convert)

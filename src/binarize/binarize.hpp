@@ -1,10 +1,10 @@
-#ifndef BGCODE_BASE_HPP
-#define BGCODE_BASE_HPP
+#ifndef _BGCODE_BINARIZE_HPP_
+#define _BGCODE_BINARIZE_HPP_
 
-#include "base/export.h"
+#include "binarize/export.h"
 #include "core/core.hpp"
 
-namespace bgcode { namespace base {
+namespace bgcode { namespace binarize {
 
 struct BaseMetadataBlock
 {
@@ -130,4 +130,4 @@ private:
 
 }} // bgcode::core
 
-#endif // BGCODE_BASE_HPP
+#endif // _BGCODE_BINARIZE_HPP_

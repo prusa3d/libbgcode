@@ -14,8 +14,8 @@ target_link_libraries(test_common INTERFACE Catch2::Catch2)
 
 add_subdirectory(core)
 
-if (${PROJECT_NAME}_BUILD_COMPONENT_Base)
-    add_subdirectory(base)
+if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
+    add_subdirectory(binarize)
 endif()
 
 if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
