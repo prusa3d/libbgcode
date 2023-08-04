@@ -2,16 +2,16 @@
 
 include(CMakeFindDependencyMacro)
 
-set(_@PROJECT_NAME@_supported_components Core Base Convert)
+set(_@PROJECT_NAME@_supported_components Core Binarize Convert)
 
 set(Core_deps "@Core_DOWNSTREAM_DEPS@")
-set(Base_deps "@Base_DOWNSTREAM_DEPS@")
+set(Binarize_deps "@Binarize_DOWNSTREAM_DEPS@")
 set(Convert_deps "@Convert_DOWNSTREAM_DEPS@")
 
 set(_comps ${@PROJECT_NAME@_FIND_COMPONENTS})
 if (_comps)
   if ("Convert" IN_LIST _comps)
-    list(PREPEND _comps Base)
+    list(PREPEND _comps Binarize)
   endif ()
   list(PREPEND _comps Core)
   list(REMOVE_DUPLICATES _comps)
