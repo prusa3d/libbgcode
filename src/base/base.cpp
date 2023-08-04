@@ -799,12 +799,14 @@ EResult Binarizer::initialize(FILE& file, const BinarizerConfig& config)
         return res;
 
     // save file metadata block
+    m_binary_data.file_metadata.encoding_type = (uint16_t)config.metadata_encoding;
     res = m_binary_data.file_metadata.write(*m_file, m_config.compression.file_metadata, m_config.checksum);
     if (res != EResult::Success)
         // propagate error
         return res;
 
     // save printer metadata block
+    m_binary_data.printer_metadata.encoding_type = (uint16_t)config.metadata_encoding;
     res = m_binary_data.printer_metadata.write(*m_file, m_config.compression.printer_metadata, m_config.checksum);
     if (res != EResult::Success)
         // propagate error
@@ -819,12 +821,14 @@ EResult Binarizer::initialize(FILE& file, const BinarizerConfig& config)
     }
 
     // save print metadata block
+    m_binary_data.print_metadata.encoding_type = (uint16_t)config.metadata_encoding;
     res = m_binary_data.print_metadata.write(*m_file, m_config.compression.print_metadata, m_config.checksum);
     if (res != EResult::Success)
         // propagate error
         return res;
 
     // save slicer metadata block
+    m_binary_data.slicer_metadata.encoding_type = (uint16_t)config.metadata_encoding;
     res = m_binary_data.slicer_metadata.write(*m_file, m_config.compression.slicer_metadata, m_config.checksum);
     if (res != EResult::Success)
         // propagate error
