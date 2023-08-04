@@ -169,7 +169,7 @@ TEST_CASE("Checksum max cache size", "[Core]")
          std::cout << "\n";
 
          // move to next block header
-         REQUIRE(skip_block_content(*file, file_header, block_header) == EResult::Success);
+         REQUIRE(skip_block(*file, file_header, block_header) == EResult::Success);
          if (ftell(file) == file_size)
              break;
      } while (true);
@@ -206,7 +206,7 @@ TEST_CASE("Checksum max cache size", "[Core]")
          std::cout << "Block type: " << block_type_as_string((EBlockType)block_header.type) << "\n";
 
          // move to next block header
-         REQUIRE(skip_block_content(*file, file_header, block_header) == EResult::Success);
+         REQUIRE(skip_block(*file, file_header, block_header) == EResult::Success);
          if (ftell(file) == file_size)
              break;
      } while (true);

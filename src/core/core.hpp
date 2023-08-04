@@ -143,6 +143,8 @@ struct BlockHeader
     EResult write(FILE& file) const;
     EResult read(FILE& file);
 
+    size_t get_size() const;
+
 private:
     mutable long m_position{ 0 };
 };
@@ -183,17 +185,11 @@ extern BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileH
 // - file position will keep the current value
 extern BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileHeader& file_header, BlockHeader& block_header, EBlockType type, bool verify_checksum);
 
-// Skips the payload (parameters + data) of the block with the given block header.
-// File position must be at the start of the block parameters.
-// If return == EResult::Success:
-// - file position will be set at the start of the block checksum, if present, or of next block header
-extern BGCODE_CORE_EXPORT EResult skip_block_payload(FILE& file, const BlockHeader& block_header);
-
 // Skips the content (parameters + data + checksum) of the block with the given block header.
 // File position must be at the start of the block parameters.
 // If return == EResult::Success:
 // - file position will be set at the start of the next block header
-extern BGCODE_CORE_EXPORT EResult skip_block_content(FILE& file, const FileHeader& file_header, const BlockHeader& block_header);
+extern BGCODE_CORE_EXPORT EResult skip_block(FILE& file, const FileHeader& file_header, const BlockHeader& block_header);
 
 // Returns the size of the parameters of the given block type, in bytes.
 extern BGCODE_CORE_EXPORT size_t block_parameters_size(EBlockType type);
