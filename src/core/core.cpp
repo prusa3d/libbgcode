@@ -13,8 +13,8 @@ static bool write_to_file(FILE& file, const void* data, size_t data_size)
 
 static bool read_from_file(FILE& file, void* data, size_t data_size)
 {
-    fread(data, 1, data_size, &file);
-    return !ferror(&file);
+    size_t rsize = fread(data, 1, data_size, &file);
+    return !ferror(&file) && rsize == data_size;
 }
 
 static uint32_t crc32_sw(const uint8_t* buffer, uint32_t length, uint32_t crc)
@@ -67,7 +67,7 @@ static EResult checksums_match(FILE& file, const FileHeader& file_header, const 
         // propagate error
         return res;
 
-    // Verify checksum 
+    // Verify checksum
     if (!curr_cs.matches(read_cs))
         return EResult::InvalidChecksum;
 
@@ -284,8 +284,8 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
 
     // check magic number
     std::array<uint8_t, 4> magic;
-    fread((void*)magic.data(), 1, magic.size(), &file);
-    if (ferror(&file))
+    size_t hsize = fread((void*)magic.data(), 1, magic.size(), &file);
+    if (ferror(&file) && hsize != magic.size())
         return EResult::ReadError;
     else if (magic != MAGIC) {
         // restore file position
