@@ -7,7 +7,7 @@
 #include <functional>
 #include <charconv>
 
-namespace bgcode { 
+namespace bgcode {
 using namespace core;
 using namespace binarize;
 namespace convert {
@@ -661,7 +661,7 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
 
     if (!write_line("\n"))
         return EResult::WriteError;
-    res = skip_block_content(src_file, file_header, block_header);
+    res = skip_block(src_file, file_header, block_header);
     if (res != EResult::Success)
         // propagate error
         return res;
