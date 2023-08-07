@@ -256,6 +256,26 @@ size_t BlockHeader::get_size() const {
     return sizeof(type) + sizeof(compression) + sizeof(uncompressed_size) + ((compression == (uint16_t)ECompressionType::None)? 0 : sizeof(compressed_size));
 }
 
+EResult ThumbnailParams::write(FILE& file) const {
+    if (!write_to_file(file, (const void*)&format, sizeof(format)))
+        return EResult::WriteError;
+    if (!write_to_file(file, (const void*)&width, sizeof(width)))
+        return EResult::WriteError;
+    if (!write_to_file(file, (const void*)&height, sizeof(height)))
+        return EResult::WriteError;
+    return EResult::Success;
+}
+
+EResult ThumbnailParams::read(FILE& file){
+    if (!read_from_file(file, (void*)&format, sizeof(format)))
+        return EResult::ReadError;
+    if (!read_from_file(file, (void*)&width, sizeof(width)))
+        return EResult::ReadError;
+    if (!read_from_file(file, (void*)&height, sizeof(height)))
+        return EResult::ReadError;
+    return EResult::Success;
+}
+
 BGCODE_CORE_EXPORT size_t get_checksum_max_cache_size() { return g_checksum_max_cache_size; }
 BGCODE_CORE_EXPORT void set_checksum_max_cache_size(size_t size) { g_checksum_max_cache_size = size; }
 

@@ -561,13 +561,13 @@ EResult PrinterMetadataBlock::read_data(FILE& file, const FileHeader& file_heade
     return EResult::Success;
 }
 
-EResult ThumbnailBlock::write(FILE& file, EChecksumType checksum_type) const
+EResult ThumbnailBlock::write(FILE& file, EChecksumType checksum_type)
 {
-    if (format >= thumbnail_formats_count())
+    if (params.format >= thumbnail_formats_count())
         return EResult::InvalidThumbnailFormat;
-    if (width == 0)
+    if (params.width == 0)
         return EResult::InvalidThumbnailWidth;
-    if (height == 0)
+    if (params.height == 0)
         return EResult::InvalidThumbnailHeight;
     if (data.size() == 0)
         return EResult::InvalidThumbnailDataSize;
@@ -579,13 +579,12 @@ EResult ThumbnailBlock::write(FILE& file, EChecksumType checksum_type) const
         // propagate error
         return res;
 
-    // write block payload
-    if (!write_to_file(file, (const void*)&format, sizeof(format)))
-        return EResult::WriteError;
-    if (!write_to_file(file, (const void*)&width, sizeof(width)))
-        return EResult::WriteError;
-    if (!write_to_file(file, (const void*)&height, sizeof(height)))
-        return EResult::WriteError;
+    res = params.write(file);
+    if (res != EResult::Success){
+        // propagate error
+        return res;
+    }
+
     if (!write_to_file(file, (const void*)data.data(), data.size()))
         return EResult::WriteError;
 
@@ -607,17 +606,15 @@ EResult ThumbnailBlock::write(FILE& file, EChecksumType checksum_type) const
 EResult ThumbnailBlock::read_data(FILE& file, const FileHeader& file_header, const BlockHeader& block_header)
 {
     // read block payload
-    if (!read_from_file(file, (void*)&format, sizeof(format)))
-        return EResult::ReadError;
-    if (format >= thumbnail_formats_count())
+    EResult res = params.read(file);
+    if (res != EResult::Success)
+        // propagate error
+        return res;
+    if (params.format >= thumbnail_formats_count())
         return EResult::InvalidThumbnailFormat;
-    if (!read_from_file(file, (void*)&width, sizeof(width)))
-        return EResult::ReadError;
-    if (width == 0)
+    if (params.width == 0)
         return EResult::InvalidThumbnailWidth;
-    if (!read_from_file(file, (void*)&height, sizeof(height)))
-        return EResult::ReadError;
-    if (height == 0)
+    if (params.height == 0)
         return EResult::InvalidThumbnailHeight;
     if (block_header.uncompressed_size == 0)
         return EResult::InvalidThumbnailDataSize;
@@ -640,9 +637,9 @@ EResult ThumbnailBlock::read_data(FILE& file, const FileHeader& file_header, con
 
 void ThumbnailBlock::update_checksum(Checksum& checksum) const
 {
-    checksum.append(encode((const void*)&format, sizeof(format)));
-    checksum.append(encode((const void*)&width, sizeof(width)));
-    checksum.append(encode((const void*)&height, sizeof(height)));
+    checksum.append(encode((const void*)&params.format, sizeof(params.format)));
+    checksum.append(encode((const void*)&params.width, sizeof(params.width)));
+    checksum.append(encode((const void*)&params.height, sizeof(params.height)));
     checksum.append(data);
 }
 
@@ -813,7 +810,7 @@ EResult Binarizer::initialize(FILE& file, const BinarizerConfig& config)
         return res;
 
     // save thumbnail blocks
-    for (const ThumbnailBlock& block : m_binary_data.thumbnails) {
+    for (ThumbnailBlock& block : m_binary_data.thumbnails) {
         res = block.write(*m_file, m_config.checksum);
         if (res != EResult::Success)
             // propagate error

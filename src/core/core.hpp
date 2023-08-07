@@ -133,7 +133,7 @@ struct BlockHeader
     BlockHeader() = default;
     BlockHeader(uint16_t type, uint16_t compression, uint32_t uncompressed_size, uint32_t compressed_size = 0);
 
-    // Updates the given checksum with the data of this BlockHeader.
+    // Updates the given checksum with the data of this BlockHeader
     void update_checksum(Checksum& checksum) const;
 
     // Returns the position of this block in the file.
@@ -143,13 +143,25 @@ struct BlockHeader
     EResult write(FILE& file) const;
     EResult read(FILE& file);
 
+    // Returs the size of this BlockHeader, in bytes
     size_t get_size() const;
 
 private:
     mutable long m_position{ 0 };
 };
 
-// Returns a string description of the given result.
+struct ThumbnailParams
+{
+    uint16_t format;
+    uint16_t width;
+    uint16_t height;
+
+    EResult write(FILE& file) const;
+    EResult read(FILE& file);
+};
+
+
+// Returns a string description of the given result
 extern BGCODE_CORE_EXPORT std::string_view translate_result(EResult result);
 
 // Get the max size of the cache used to calculate checksums, in bytes.
