@@ -149,18 +149,11 @@ TEST_CASE("Checksum max cache size", "[Core]")
          case EBlockType::Thumbnail:
          {
              const long curr_pos = ftell(file);
-             uint16_t format;
-             fread(&format, 1, sizeof(format), file);
-             REQUIRE(ferror(file) == 0);
-             uint16_t width;
-             fread(&width, 1, sizeof(width), file);
-             REQUIRE(ferror(file) == 0);
-             uint16_t height;
-             fread(&height, 1, sizeof(height), file);
-             REQUIRE(ferror(file) == 0);
+             ThumbnailHeader thumbnail_header;
+             auto res= thumbnail_header.read(*file);
              fseek(file, curr_pos, SEEK_SET);
-             std::cout << " - format: " << thumbnail_format_as_string((EThumbnailFormat)format);
-             std::cout << " (size: " << width << "x" << height << ")";
+             std::cout << " - format: " << thumbnail_format_as_string(thumbnail_header.image_format);
+             std::cout << " (size: " << thumbnail_header.width << "x" << thumbnail_header.height << ")";
              break;
          }
          default: { break; }

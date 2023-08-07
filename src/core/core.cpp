@@ -244,6 +244,34 @@ size_t BlockHeader::get_size() const {
     return sizeof(type) + sizeof(compression) + sizeof(uncompressed_size) + ((compression == (uint16_t)ECompressionType::None)? 0 : sizeof(compressed_size));
 }
 
+EResult ThumbnailHeader::read(FILE& file){
+    if (fread(&image_format, 1, sizeof(image_format), &file) != sizeof(image_format)){
+        return EResult::ReadError;
+    }
+
+    if (fread(&width, 1, sizeof(width), &file) != sizeof(width)){
+        return EResult::ReadError;
+    }
+    if (fread(&height, 1, sizeof(height), &file) != sizeof(height)){
+        return EResult::ReadError;
+    }
+
+    return EResult::Success;
+}
+
+EResult ThumbnailHeader::write(FILE& file) const{
+    // write block payload
+    if (!write_to_file(file, (const void*)&image_format, sizeof(image_format)))
+        return EResult::WriteError;
+    if (!write_to_file(file, (const void*)&width, sizeof(width)))
+        return EResult::WriteError;
+    if (!write_to_file(file, (const void*)&height, sizeof(height)))
+        return EResult::WriteError;
+
+    return EResult::Success;
+}
+
+
 BGCODE_CORE_EXPORT size_t get_checksum_max_cache_size() { return g_checksum_max_cache_size; }
 BGCODE_CORE_EXPORT void set_checksum_max_cache_size(size_t size) { g_checksum_max_cache_size = size; }
 
@@ -516,7 +544,7 @@ BGCODE_CORE_EXPORT size_t block_parameters_size(EBlockType type)
 
 BGCODE_CORE_EXPORT EResult skip_block(FILE& file, const FileHeader& file_header, const BlockHeader& block_header)
 {
-    fseek(&file, block_header.position + block_header.get_size() + block_content_size(file_header, block_header), SEEK_SET);
+    fseek(&file, (long)(block_header.position + block_header.get_size() + block_content_size(file_header, block_header)), SEEK_SET);
     return ferror(&file) ? EResult::ReadError : EResult::Success;
 }
 

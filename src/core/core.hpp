@@ -131,6 +131,10 @@ struct BlockHeader
     uint32_t uncompressed_size{ 0 };
     uint32_t compressed_size{ 0 };
 
+    BlockHeader() = default;
+    BlockHeader(EBlockType type, ECompressionType compression, uint32_t uncompressed_size, uint32_t compressed_size = 0)
+        : type((uint16_t)type), compression((uint16_t)compression), uncompressed_size(uncompressed_size), compressed_size(compressed_size) {}
+
     // Updates the given checksum with the data of this BlockHeader
     void update_checksum(Checksum& checksum) const;
 
@@ -138,6 +142,18 @@ struct BlockHeader
     EResult read(FILE& file);
     size_t get_size() const;
 };
+
+struct ThumbnailHeader
+{
+
+    uint16_t width;
+    uint16_t height;
+    EThumbnailFormat image_format;
+
+    EResult read(FILE& file);
+    EResult write(FILE& file) const;
+};
+
 
 // Returns a string description of the given result
 extern BGCODE_CORE_EXPORT std::string_view translate_result(EResult result);

@@ -361,7 +361,7 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
             }
             if (reading_thumbnail.has_value()) {
                 ThumbnailBlock& thumbnail = binary_data.thumbnails.emplace_back(ThumbnailBlock());
-                thumbnail.format = (uint16_t)*reading_thumbnail;
+                thumbnail.header.image_format = (bgcode::EThumbnailFormat)*reading_thumbnail;
                 pos = sv_thumbnail_str.find(" ");
                 if (pos == std::string_view::npos) {
                     parse_res = EResult::InvalidAsciiGCodeFile;
@@ -373,8 +373,8 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
                     parse_res = EResult::InvalidAsciiGCodeFile;
                     return;
                 }
-                thumbnail.width = rect.first;
-                thumbnail.height = rect.second;
+                thumbnail.header.width = rect.first;
+                thumbnail.header.height = rect.second;
                 const std::string_view sv_data_size_str = trim(sv_thumbnail_str.substr(pos + 1));
                 size_t data_size;
                 to_int(sv_data_size_str, data_size);
@@ -606,14 +606,14 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
         encoded.resize(boost::beast::detail::base64::encoded_size(thumbnail_block.data.size()));
         encoded.resize(boost::beast::detail::base64::encode((void*)encoded.data(), (const void*)thumbnail_block.data.data(), thumbnail_block.data.size()));
         std::string format;
-        switch ((EThumbnailFormat)thumbnail_block.format)
+        switch ((EThumbnailFormat)thumbnail_block.header.image_format)
         {
         default:
         case EThumbnailFormat::PNG: { format = "thumbnail"; break; }
         case EThumbnailFormat::JPG: { format = "thumbnail_JPG"; break; }
         case EThumbnailFormat::QOI: { format = "thumbnail_QOI"; break; }
         }
-        if (!write_line("\n;\n; " + format + " begin " + std::to_string(thumbnail_block.width) + "x" + std::to_string(thumbnail_block.height) +
+        if (!write_line("\n;\n; " + format + " begin " + std::to_string(thumbnail_block.header.width) + "x" + std::to_string(thumbnail_block.header.height) +
             " " + std::to_string(encoded.length()) + "\n"))
             return EResult::WriteError;
         while (encoded.size() > max_row_length) {
