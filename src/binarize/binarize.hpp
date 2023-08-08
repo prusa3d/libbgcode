@@ -45,7 +45,7 @@ struct PrinterMetadataBlock : public BaseMetadataBlock
 
 struct ThumbnailBlock
 {
-    bgcode::core::ThumbnailHeader header;
+    core::ThumbnailParams params;
     std::vector<uint8_t> data;
 
     // write block header and data
