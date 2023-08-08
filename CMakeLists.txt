@@ -41,6 +41,10 @@ if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
     endif ()
 endif()
 
+# Set this if downstream would need to link additional boost
+# components
+set(Boost_DOWNSTREAM_COMPONENTS nowide)
+
 set(namespace "${PROJECT_NAME}::")
 
 if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
@@ -158,9 +162,6 @@ if (${PROJECT_NAME}_BUILD_CMD_TOOL)
     find_package(Boost ${Boost_VER} REQUIRED COMPONENTS nowide)
     set_target_properties(${_libname}_cmd PROPERTIES OUTPUT_NAME ${_libname})
     target_link_libraries(${_libname}_cmd ${_libname}_convert Boost::nowide)
-
-    # config script will need this to require nowide if the exported lib is static
-    set(Boost_DOWNSTREAM_COMPONENTS nowide)
 endif ()
 
 if(${PROJECT_NAME}_BUILD_TESTS)
