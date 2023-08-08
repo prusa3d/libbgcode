@@ -130,8 +130,8 @@ TEST_CASE("Checksum max cache size", "[Core]")
          {
              const long curr_pos = ftell(file);
              uint16_t encoding;
-             fread(&encoding, 1, sizeof(encoding), file);
-             REQUIRE(ferror(file) == 0);
+             const size_t rsize = fread(&encoding, 1, sizeof(encoding), file);
+             REQUIRE((ferror(file) == 0 && rsize == sizeof(encoding)));
              fseek(file, curr_pos, SEEK_SET);
              std::cout << " - encoding: " << metadata_encoding_as_string((EMetadataEncodingType)encoding);
              break;
@@ -140,8 +140,8 @@ TEST_CASE("Checksum max cache size", "[Core]")
          {
              const long curr_pos = ftell(file);
              uint16_t encoding;
-             fread(&encoding, 1, sizeof(encoding), file);
-             REQUIRE(ferror(file) == 0);
+             const size_t rsize = fread(&encoding, 1, sizeof(encoding), file);
+             REQUIRE((ferror(file) == 0 && rsize == sizeof(encoding)));
              fseek(file, curr_pos, SEEK_SET);
              std::cout << " - encoding: " << gcode_encoding_as_string((EGCodeEncodingType)encoding);
              break;
@@ -149,18 +149,11 @@ TEST_CASE("Checksum max cache size", "[Core]")
          case EBlockType::Thumbnail:
          {
              const long curr_pos = ftell(file);
-             uint16_t format;
-             fread(&format, 1, sizeof(format), file);
-             REQUIRE(ferror(file) == 0);
-             uint16_t width;
-             fread(&width, 1, sizeof(width), file);
-             REQUIRE(ferror(file) == 0);
-             uint16_t height;
-             fread(&height, 1, sizeof(height), file);
-             REQUIRE(ferror(file) == 0);
+             ThumbnailParams thumbnail_params;
+             REQUIRE(thumbnail_params.read(*file) == EResult::Success);
              fseek(file, curr_pos, SEEK_SET);
-             std::cout << " - format: " << thumbnail_format_as_string((EThumbnailFormat)format);
-             std::cout << " (size: " << width << "x" << height << ")";
+             std::cout << " - format: " << thumbnail_format_as_string((EThumbnailFormat)thumbnail_params.format);
+             std::cout << " (size: " << thumbnail_params.width << "x" << thumbnail_params.height << ")";
              break;
          }
          default: { break; }
@@ -169,7 +162,7 @@ TEST_CASE("Checksum max cache size", "[Core]")
          std::cout << "\n";
 
          // move to next block header
-         REQUIRE(skip_block_content(*file, file_header, block_header) == EResult::Success);
+         REQUIRE(skip_block(*file, file_header, block_header) == EResult::Success);
          if (ftell(file) == file_size)
              break;
      } while (true);
@@ -206,7 +199,7 @@ TEST_CASE("Checksum max cache size", "[Core]")
          std::cout << "Block type: " << block_type_as_string((EBlockType)block_header.type) << "\n";
 
          // move to next block header
-         REQUIRE(skip_block_content(*file, file_header, block_header) == EResult::Success);
+         REQUIRE(skip_block(*file, file_header, block_header) == EResult::Success);
          if (ftell(file) == file_size)
              break;
      } while (true);

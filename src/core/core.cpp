@@ -13,8 +13,8 @@ static bool write_to_file(FILE& file, const void* data, size_t data_size)
 
 static bool read_from_file(FILE& file, void* data, size_t data_size)
 {
-    fread(data, 1, data_size, &file);
-    return !ferror(&file);
+    const size_t rsize = fread(data, 1, data_size, &file);
+    return !ferror(&file) && rsize == data_size;
 }
 
 static uint32_t crc32_sw(const uint8_t* buffer, uint32_t length, uint32_t crc)
@@ -67,7 +67,7 @@ static EResult checksums_match(FILE& file, const FileHeader& file_header, const 
         // propagate error
         return res;
 
-    // Verify checksum 
+    // Verify checksum
     if (!curr_cs.matches(read_cs))
         return EResult::InvalidChecksum;
 
@@ -192,6 +192,13 @@ EResult FileHeader::read(FILE& file, const uint32_t* const max_version)
     return EResult::Success;
 }
 
+BlockHeader::BlockHeader(uint16_t type, uint16_t compression, uint32_t uncompressed_size, uint32_t compressed_size)
+  : type(type)
+  , compression(compression)
+  , uncompressed_size(uncompressed_size)
+  , compressed_size(compressed_size)
+{}
+
 void BlockHeader::update_checksum(Checksum& checksum) const
 {
     checksum.append(encode((const void*)&type, sizeof(type)));
@@ -201,8 +208,14 @@ void BlockHeader::update_checksum(Checksum& checksum) const
         checksum.append(encode((const void*)&compressed_size, sizeof(compressed_size)));
 }
 
+long BlockHeader::get_position() const
+{
+    return m_position;
+}
+
 EResult BlockHeader::write(FILE& file) const
 {
+    m_position = ftell(&file);
     if (!write_to_file(file, (const void*)&type, sizeof(type)))
         return EResult::WriteError;
     if (!write_to_file(file, (const void*)&compression, sizeof(compression)))
@@ -218,6 +231,7 @@ EResult BlockHeader::write(FILE& file) const
 
 EResult BlockHeader::read(FILE& file)
 {
+    m_position = ftell(&file);
     if (!read_from_file(file, (void*)&type, sizeof(type)))
         return EResult::ReadError;
     if (type >= block_types_count())
@@ -235,6 +249,30 @@ EResult BlockHeader::read(FILE& file)
             return EResult::ReadError;
     }
 
+    return EResult::Success;
+}
+
+size_t BlockHeader::get_size() const {
+    return sizeof(type) + sizeof(compression) + sizeof(uncompressed_size) + ((compression == (uint16_t)ECompressionType::None)? 0 : sizeof(compressed_size));
+}
+
+EResult ThumbnailParams::write(FILE& file) const {
+    if (!write_to_file(file, (const void*)&format, sizeof(format)))
+        return EResult::WriteError;
+    if (!write_to_file(file, (const void*)&width, sizeof(width)))
+        return EResult::WriteError;
+    if (!write_to_file(file, (const void*)&height, sizeof(height)))
+        return EResult::WriteError;
+    return EResult::Success;
+}
+
+EResult ThumbnailParams::read(FILE& file){
+    if (!read_from_file(file, (void*)&format, sizeof(format)))
+        return EResult::ReadError;
+    if (!read_from_file(file, (void*)&width, sizeof(width)))
+        return EResult::ReadError;
+    if (!read_from_file(file, (void*)&height, sizeof(height)))
+        return EResult::ReadError;
     return EResult::Success;
 }
 
@@ -284,8 +322,8 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
 
     // check magic number
     std::array<uint8_t, 4> magic;
-    fread((void*)magic.data(), 1, magic.size(), &file);
-    if (ferror(&file))
+    const size_t rsize = fread((void*)magic.data(), 1, magic.size(), &file);
+    if (ferror(&file) && rsize != magic.size())
         return EResult::ReadError;
     else if (magic != MAGIC) {
         // restore file position
@@ -324,7 +362,7 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
         }
 
         // read printer metadata block header
-        res = skip_block_content(file, file_header, block_header);
+        res = skip_block(file, file_header, block_header);
         if (res != EResult::Success) {
             // restore file position
             fseek(&file, curr_pos, SEEK_SET);
@@ -345,7 +383,7 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
         }
 
         // read thumbnails block headers, if present
-        res = skip_block_content(file, file_header, block_header);
+        res = skip_block(file, file_header, block_header);
         if (res != EResult::Success) {
             // restore file position
             fseek(&file, curr_pos, SEEK_SET);
@@ -360,7 +398,7 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
             return res;
         }
         while ((EBlockType)block_header.type == EBlockType::Thumbnail) {
-            res = skip_block_content(file, file_header, block_header);
+            res = skip_block(file, file_header, block_header);
             if (res != EResult::Success) {
                 // restore file position
                 fseek(&file, curr_pos, SEEK_SET);
@@ -384,7 +422,7 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
         }
 
         // read slicer metadata block header
-        res = skip_block_content(file, file_header, block_header);
+        res = skip_block(file, file_header, block_header);
         if (res != EResult::Success) {
             // restore file position
             fseek(&file, curr_pos, SEEK_SET);
@@ -406,7 +444,7 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
 
         // read gcode block headers
         do {
-            res = skip_block_content(file, file_header, block_header);
+            res = skip_block(file, file_header, block_header);
             if (res != EResult::Success) {
                 // restore file position
                 fseek(&file, curr_pos, SEEK_SET);
@@ -484,7 +522,7 @@ BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileHeader& 
         }
 
         if (!feof(&file)) {
-            res = skip_block_content(file, file_header, block_header);
+            res = skip_block(file, file_header, block_header);
             if (res != EResult::Success)
                 // propagate error
                 return res;
@@ -508,15 +546,15 @@ BGCODE_CORE_EXPORT size_t block_parameters_size(EBlockType type)
     return 0;
 }
 
-BGCODE_CORE_EXPORT EResult skip_block_payload(FILE& file, const BlockHeader& block_header)
-{
-    fseek(&file, (long)block_payload_size(block_header), SEEK_CUR);
-    return ferror(&file) ? EResult::ReadError : EResult::Success;
-}
-
 BGCODE_CORE_EXPORT EResult skip_block_content(FILE& file, const FileHeader& file_header, const BlockHeader& block_header)
 {
     fseek(&file, (long)block_content_size(file_header, block_header), SEEK_CUR);
+    return ferror(&file) ? EResult::ReadError : EResult::Success;
+}
+
+BGCODE_CORE_EXPORT EResult skip_block(FILE& file, const FileHeader& file_header, const BlockHeader& block_header)
+{
+    fseek(&file, block_header.get_position() + (long)block_header.get_size() + (long)block_content_size(file_header, block_header), SEEK_SET);
     return ferror(&file) ? EResult::ReadError : EResult::Success;
 }
 

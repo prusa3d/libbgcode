@@ -45,13 +45,11 @@ struct PrinterMetadataBlock : public BaseMetadataBlock
 
 struct ThumbnailBlock
 {
-    uint16_t format{ 0 };
-    uint16_t width{ 0 };
-    uint16_t height{ 0 };
+    core::ThumbnailParams params;
     std::vector<uint8_t> data;
 
     // write block header and data
-    core::EResult write(FILE& file, core::EChecksumType checksum_type) const;
+    core::EResult write(FILE& file, core::EChecksumType checksum_type);
     // read block data
     core::EResult read_data(FILE& file, const core::FileHeader& file_header, const core::BlockHeader& block_header);
 
