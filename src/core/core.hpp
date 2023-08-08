@@ -8,6 +8,7 @@
 #include <array>
 #include <vector>
 #include <string>
+#include <string_view>
 
 namespace bgcode { namespace core {
 
