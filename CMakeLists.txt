@@ -42,6 +42,8 @@ if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
     endif ()
 endif()
 
+set(namespace "${PROJECT_NAME}::")
+
 if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
     set(Boost_VERSION 1.78)
     find_package(Boost ${Boost_VERSION} REQUIRED)
@@ -50,6 +52,9 @@ if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
         # append all the libs that are required privately for Core
     endif ()
 endif ()
+
+# For includes to be the same when integrating as sub-project and when using fing_package
+file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} SYMBOLIC)
 
 # Create an export header
 include(GenerateExportHeader)
@@ -72,6 +77,8 @@ target_include_directories(${_libname}_core
         $<INSTALL_INTERFACE:include>
 )
 
+add_library(${namespace}${_libname}_core ALIAS ${_libname}_core)
+
 if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
     # Binarize component
     add_library(${_libname}_binarize
@@ -81,6 +88,8 @@ if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
         src/binarize/meatpack.hpp
         # Add more source files here if needed
     )
+
+    add_library(${namespace}${_libname}_binarize ALIAS ${_libname}_binarize)
 
     generate_export_header(${_libname}_binarize
         EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/binarize/export.h
@@ -107,6 +116,8 @@ if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
         src/convert/convert.hpp
         # Add more source files here if needed
     )
+
+    add_library(${namespace}${_libname}_convert ALIAS ${_libname}_convert)
 
     generate_export_header(${_libname}_convert
         EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/convert/export.h
@@ -154,7 +165,6 @@ set(CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 
 set(version_config "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake")
 set(project_config "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake")
-set(namespace "${PROJECT_NAME}::")
 
 list(GET _selected_components -1 _highest_comp)
 foreach(_comp ${_selected_components})
