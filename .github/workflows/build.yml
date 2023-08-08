@@ -159,13 +159,13 @@ jobs:
       working-directory: ${{github.workspace}}\example\build_fp
       run: |
         cmake .. -DCMAKE_PREFIX_PATH="${{github.workspace}}\build\dist;${{github.workspace}}\deps\build\destdir\usr\local"
-        cmake --build .
+        cmake --build . --config Release
 
     - name: Build example (using add_subdirectory)
       working-directory: ${{github.workspace}}\example\build_subd
       run: |
         cmake .. -DBGCODE_AS_SUBPROJECT=ON -DLibBGCode_BUILD_TESTS=OFF -DCMAKE_PREFIX_PATH=${{github.workspace}}\deps\build\destdir\usr\local
-        cmake --build .
+        cmake --build . --config Release
 
     - uses: actions/upload-artifact@v3  # upload test results
       if: success() || failure()        # run this step even if previous step failed
