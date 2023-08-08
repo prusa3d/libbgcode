@@ -149,12 +149,12 @@ private:
     mutable long m_position{ 0 };
 };
 
-// Returns a string description of the given result
+// Returns a string description of the given result.
 extern BGCODE_CORE_EXPORT std::string_view translate_result(EResult result);
 
-// Get the max size of the cache used to calculate checksums, in bytes
+// Get the max size of the cache used to calculate checksums, in bytes.
 extern BGCODE_CORE_EXPORT size_t get_checksum_max_cache_size();
-// Set the max size of the cache used to calculate checksums, in bytes
+// Set the max size of the cache used to calculate checksums, in bytes.
 extern BGCODE_CORE_EXPORT void set_checksum_max_cache_size(size_t size);
 
 // Returns EResult::Success if the given file is a valid binary gcode
@@ -163,32 +163,38 @@ extern BGCODE_CORE_EXPORT void set_checksum_max_cache_size(size_t size);
 extern BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents = false);
 
 // Reads the file header.
-// If max_version is not null, version is checked against the passed value
+// If max_version is not null, version is checked against the passed value.
 // If return == EResult::Success:
-// - header will contain the file header
-// - file position will be set at the start of the 1st block header
+// - header will contain the file header.
+// - file position will be set at the start of the 1st block header.
 extern BGCODE_CORE_EXPORT EResult read_header(FILE& file, FileHeader& header, const uint32_t* const max_version);
 
 // Reads next block header from the current file position.
 // File position must be at the start of a block header.
 // If return == EResult::Success:
-// - block_header will contain the header of the block
-// - file position will be set at the start of the block parameters data
+// - block_header will contain the header of the block.
+// - file position will be set at the start of the block parameters data.
 extern BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileHeader& file_header, BlockHeader& block_header, bool verify_checksum);
 
 // Searches and reads next block header with the given type from the current file position.
 // File position must be at the start of a block header.
 // If return == EResult::Success:
-// - block_header will contain the header of the block with the required type
-// - file position will be set at the start of the block parameters data
+// - block_header will contain the header of the block with the required type.
+// - file position will be set at the start of the block parameters data.
 // otherwise:
-// - file position will keep the current value
+// - file position will keep the current value.
 extern BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileHeader& file_header, BlockHeader& block_header, EBlockType type, bool verify_checksum);
 
 // Skips the content (parameters + data + checksum) of the block with the given block header.
 // File position must be at the start of the block parameters.
 // If return == EResult::Success:
-// - file position will be set at the start of the next block header
+// - file position will be set at the start of the next block header.
+extern BGCODE_CORE_EXPORT EResult skip_block_content(FILE& file, const FileHeader& file_header, const BlockHeader& block_header);
+
+// Skips the block with the given block header.
+// File position must be set by a previous call to BlockHeader::write() or BlockHeader::read().
+// If return == EResult::Success:
+// - file position will be set at the start of the next block header.
 extern BGCODE_CORE_EXPORT EResult skip_block(FILE& file, const FileHeader& file_header, const BlockHeader& block_header);
 
 // Returns the size of the parameters of the given block type, in bytes.
