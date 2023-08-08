@@ -13,7 +13,7 @@ static bool write_to_file(FILE& file, const void* data, size_t data_size)
 
 static bool read_from_file(FILE& file, void* data, size_t data_size)
 {
-    size_t rsize = fread(data, 1, data_size, &file);
+    const size_t rsize = fread(data, 1, data_size, &file);
     return !ferror(&file) && rsize == data_size;
 }
 
@@ -284,8 +284,8 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
 
     // check magic number
     std::array<uint8_t, 4> magic;
-    size_t hsize = fread((void*)magic.data(), 1, magic.size(), &file);
-    if (ferror(&file) && hsize != magic.size())
+    const size_t rsize = fread((void*)magic.data(), 1, magic.size(), &file);
+    if (ferror(&file) && rsize != magic.size())
         return EResult::ReadError;
     else if (magic != MAGIC) {
         // restore file position

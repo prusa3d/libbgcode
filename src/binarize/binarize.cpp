@@ -22,8 +22,8 @@ static bool write_to_file(FILE& file, const void* data, size_t data_size)
 
 static bool read_from_file(FILE& file, void* data, size_t data_size)
 {
-    fread(data, 1, data_size, &file);
-    return !ferror(&file);
+    const size_t rsize = fread(data, 1, data_size, &file);
+    return !ferror(&file) && rsize == data_size;
 }
 
 static std::vector<uint8_t> encode(const void* data, size_t data_size)
