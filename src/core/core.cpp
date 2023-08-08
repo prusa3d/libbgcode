@@ -192,6 +192,13 @@ EResult FileHeader::read(FILE& file, const uint32_t* const max_version)
     return EResult::Success;
 }
 
+BlockHeader::BlockHeader(uint16_t type, uint16_t compression, uint32_t uncompressed_size, uint32_t compressed_size)
+  : type(type)
+  , compression(compression)
+  , uncompressed_size(uncompressed_size)
+  , compressed_size(compressed_size)
+{}
+
 void BlockHeader::update_checksum(Checksum& checksum) const
 {
     checksum.append(encode((const void*)&type, sizeof(type)));
@@ -201,9 +208,14 @@ void BlockHeader::update_checksum(Checksum& checksum) const
         checksum.append(encode((const void*)&compressed_size, sizeof(compressed_size)));
 }
 
-EResult BlockHeader::write(FILE& file)
+long BlockHeader::get_position() const
 {
-    position = ftell(&file);
+    return m_position;
+}
+
+EResult BlockHeader::write(FILE& file) const
+{
+    m_position = ftell(&file);
     if (!write_to_file(file, (const void*)&type, sizeof(type)))
         return EResult::WriteError;
     if (!write_to_file(file, (const void*)&compression, sizeof(compression)))
@@ -219,7 +231,7 @@ EResult BlockHeader::write(FILE& file)
 
 EResult BlockHeader::read(FILE& file)
 {
-    position = ftell(&file);
+    m_position = ftell(&file);
     if (!read_from_file(file, (void*)&type, sizeof(type)))
         return EResult::ReadError;
     if (type >= block_types_count())

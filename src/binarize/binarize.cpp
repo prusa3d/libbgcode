@@ -378,7 +378,7 @@ EResult BaseMetadataBlock::write(FILE& file, EBlockType block_type, ECompression
     if (encoding_type > metadata_encoding_types_count())
         return EResult::InvalidMetadataEncodingType;
 
-    BlockHeader block_header = { (uint16_t)block_type, (uint16_t)compression_type, (uint32_t)0 };
+    BlockHeader block_header((uint16_t)block_type, (uint16_t)compression_type, (uint32_t)0);
     std::vector<uint8_t> out_data;
     if (!raw_data.empty()) {
         // process payload encoding
@@ -573,7 +573,7 @@ EResult ThumbnailBlock::write(FILE& file, EChecksumType checksum_type) const
         return EResult::InvalidThumbnailDataSize;
 
     // write block header
-    const BlockHeader block_header = { (uint16_t)EBlockType::Thumbnail, (uint16_t)ECompressionType::None, (uint32_t)data.size() };
+    const BlockHeader block_header((uint16_t)EBlockType::Thumbnail, (uint16_t)ECompressionType::None, (uint32_t)data.size());
     EResult res = block_header.write(file);
     if (res != EResult::Success)
         // propagate error
@@ -651,7 +651,7 @@ EResult GCodeBlock::write(FILE& file, ECompressionType compression_type, EChecks
     if (encoding_type > gcode_encoding_types_count())
         return EResult::InvalidGCodeEncodingType;
 
-    BlockHeader block_header = { (uint16_t)EBlockType::GCode, (uint16_t)compression_type, (uint32_t)0 };
+    BlockHeader block_header((uint16_t)EBlockType::GCode, (uint16_t)compression_type, (uint32_t)0);
     std::vector<uint8_t> out_data;
     if (!raw_data.empty()) {
         // process payload encoding

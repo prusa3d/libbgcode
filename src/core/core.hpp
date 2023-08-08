@@ -125,17 +125,26 @@ struct FileHeader
 
 struct BlockHeader
 {
-    long int position{ 0 };
     uint16_t type{ 0 };
     uint16_t compression{ 0 };
     uint32_t uncompressed_size{ 0 };
     uint32_t compressed_size{ 0 };
 
-    // Updates the given checksum with the data of this BlockHeader
+    BlockHeader() = default;
+    BlockHeader(uint16_t type, uint16_t compression, uint32_t uncompressed_size, uint32_t compressed_size = 0);
+
+    // Updates the given checksum with the data of this BlockHeader.
     void update_checksum(Checksum& checksum) const;
 
-    EResult write(FILE& file);
+    // Returns the position of this block in the file.
+    // Position is set by calling write() and read() methods.
+    long get_position() const;
+
+    EResult write(FILE& file) const;
     EResult read(FILE& file);
+
+private:
+    mutable long m_position{ 0 };
 };
 
 // Returns a string description of the given result
