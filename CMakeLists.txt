@@ -10,7 +10,6 @@ string(TOLOWER ${_libname} _libname)
 string(REPLACE "lib" "" _libname ${_libname})
 
 option(${PROJECT_NAME}_BUILD_TESTS "Build unit tests" ON)
-
 option(${PROJECT_NAME}_BUILD_COMPONENT_Binarize "Include Binarize component in the library" ON)
 
 if (NOT CMAKE_DEBUG_POSTFIX)
@@ -20,6 +19,8 @@ endif ()
 include(CMakeDependentOption)
 cmake_dependent_option(${PROJECT_NAME}_BUILD_COMPONENT_Convert "Include Convert component in the library" ON 
                        "${PROJECT_NAME}_BUILD_COMPONENT_Binarize" OFF)
+cmake_dependent_option(${PROJECT_NAME}_BUILD_CMD_TOOL "Include bgcode command line tool in the library" ON 
+                       "${PROJECT_NAME}_BUILD_COMPONENT_Binarize AND ${PROJECT_NAME}_BUILD_COMPONENT_Convert" OFF)
 
 set(_selected_components "Core")
 set(_selected_libs "${_libname}_core")
@@ -28,26 +29,42 @@ set(Core_DOWNSTREAM_DEPS "")
 set(Binarize_DOWNSTREAM_DEPS "")
 set(Convert_DOWNSTREAM_DEPS "")
 if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
-    set(heatshrink_VERSION 0.4)
-    set(ZLIB_VERSION 1.0)
-    find_package(heatshrink ${heatshrink_VERSION} REQUIRED)
-    find_package(ZLIB ${ZLIB_VERSION} REQUIRED)
+    set(heatshrink_VER 0.4)
+    set(ZLIB_VER 1.0)
+    find_package(heatshrink ${heatshrink_VER} REQUIRED)
+    find_package(ZLIB ${ZLIB_VER} REQUIRED)
     
     if (NOT BUILD_SHARED_LIBS)
-        list(APPEND Binarize_DOWNSTREAM_DEPS "heatshrink_${heatshrink_VERSION}")
-        list(APPEND Binarize_DOWNSTREAM_DEPS "ZLIB_${ZLIB_VERSION}")
+        list(APPEND Binarize_DOWNSTREAM_DEPS "heatshrink_${heatshrink_VER}")
+        list(APPEND Binarize_DOWNSTREAM_DEPS "ZLIB_${ZLIB_VER}")
         # append all the libs that are required privately for Core
     endif ()
 endif()
 
+# Set this if downstream would need to link additional boost
+# components
+set(Boost_DOWNSTREAM_COMPONENTS nowide)
+
+set(namespace "${PROJECT_NAME}::")
+
 if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
-    set(Boost_VERSION 1.78)
-    find_package(Boost ${Boost_VERSION} REQUIRED)
+    set(Boost_VER 1.78)
+    find_package(Boost ${Boost_VER} REQUIRED)
     if (NOT BUILD_SHARED_LIBS)
-        list(APPEND Convert_DOWNSTREAM_DEPS "Boost_${Boost_VERSION}")
+        list(APPEND Convert_DOWNSTREAM_DEPS "Boost_${Boost_VER}")
         # append all the libs that are required privately for Core
     endif ()
 endif ()
+
+# For includes to be the same when integrating as sub-project and when using fing_package
+# file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} SYMBOLIC)
+if (UNIX)
+    file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} SYMBOLIC)
+else()
+    file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}" _dstDir)
+    file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src" _srcDir)
+    execute_process(COMMAND cmd.exe /c mklink /J "${_dstDir}" "${_srcDir}")
+endif()
 
 # Create an export header
 include(GenerateExportHeader)
@@ -70,6 +87,8 @@ target_include_directories(${_libname}_core
         $<INSTALL_INTERFACE:include>
 )
 
+add_library(${namespace}${_libname}_core ALIAS ${_libname}_core)
+
 if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
     # Binarize component
     add_library(${_libname}_binarize
@@ -79,6 +98,8 @@ if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
         src/binarize/meatpack.hpp
         # Add more source files here if needed
     )
+
+    add_library(${namespace}${_libname}_binarize ALIAS ${_libname}_binarize)
 
     generate_export_header(${_libname}_binarize
         EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/binarize/export.h
@@ -106,6 +127,8 @@ if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
         # Add more source files here if needed
     )
 
+    add_library(${namespace}${_libname}_convert ALIAS ${_libname}_convert)
+
     generate_export_header(${_libname}_convert
         EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/convert/export.h
     )
@@ -131,6 +154,16 @@ endif ()
 add_library(${_libname} INTERFACE)
 target_link_libraries(${_libname} INTERFACE ${_selected_libs})
 
+if (${PROJECT_NAME}_BUILD_CMD_TOOL)
+    add_executable(${_libname}_cmd 
+        src/bgcode/main.cpp
+    )
+
+    find_package(Boost ${Boost_VER} REQUIRED COMPONENTS nowide)
+    set_target_properties(${_libname}_cmd PROPERTIES OUTPUT_NAME ${_libname})
+    target_link_libraries(${_libname}_cmd ${_libname}_convert Boost::nowide)
+endif ()
+
 if(${PROJECT_NAME}_BUILD_TESTS)
     enable_testing ()
     add_subdirectory(tests)
@@ -143,7 +176,6 @@ set(CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 
 set(version_config "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake")
 set(project_config "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake")
-set(namespace "${PROJECT_NAME}::")
 
 list(GET _selected_components -1 _highest_comp)
 foreach(_comp ${_selected_components})
@@ -152,6 +184,9 @@ foreach(_comp ${_selected_components})
     set(_export_targets ${_libname}_${_comp_lower})
     if (_comp STREQUAL _highest_comp)
         list(APPEND _export_targets ${_libname})
+        if (${PROJECT_NAME}_BUILD_CMD_TOOL)
+            list(APPEND _export_targets ${_libname}_cmd)
+        endif ()
     endif ()
 
     install(TARGETS ${_export_targets}
