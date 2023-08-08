@@ -80,7 +80,7 @@ jobs:
       working-directory: ${{github.workspace}}/example/build_subd
       shell: bash
       run: |
-        cmake .. -DBGCODE_AS_SUBPROJECT=ON -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build/destdir/usr/local
+        cmake .. -DBGCODE_AS_SUBPROJECT=ON -DLibBGCode_BUILD_TESTS=OFF -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build/destdir/usr/local
         cmake --build .
 
     - uses: actions/upload-artifact@v3  # upload test results
