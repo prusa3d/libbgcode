@@ -18,6 +18,8 @@ if (NOT CMAKE_DEBUG_POSTFIX)
 endif ()
 
 include(CMakeDependentOption)
+cmake_dependent_option(${PROJECT_NAME}_BUILD_CMD_TOOL "Include bgcode command line tool in the library" ON 
+                       "${PROJECT_NAME}_BUILD_COMPONENT_Binarize" OFF)
 cmake_dependent_option(${PROJECT_NAME}_BUILD_COMPONENT_Convert "Include Convert component in the library" ON 
                        "${PROJECT_NAME}_BUILD_COMPONENT_Binarize" OFF)
 
@@ -131,6 +133,15 @@ endif ()
 add_library(${_libname} INTERFACE)
 target_link_libraries(${_libname} INTERFACE ${_selected_libs})
 
+if (${PROJECT_NAME}_BUILD_CMD_TOOL)
+    add_executable(${_libname}_cmd 
+        src/bgcode/main.cpp
+    )
+
+    set_target_properties(${_libname}_cmd PROPERTIES OUTPUT_NAME ${_libname})
+    target_link_libraries(${_libname}_cmd ${_libname}_convert)
+endif ()
+
 if(${PROJECT_NAME}_BUILD_TESTS)
     enable_testing ()
     add_subdirectory(tests)
@@ -152,6 +163,9 @@ foreach(_comp ${_selected_components})
     set(_export_targets ${_libname}_${_comp_lower})
     if (_comp STREQUAL _highest_comp)
         list(APPEND _export_targets ${_libname})
+        if (${PROJECT_NAME}_BUILD_CMD_TOOL)
+            list(APPEND _export_targets ${_libname}_cmd)
+        endif ()
     endif ()
 
     install(TARGETS ${_export_targets}
