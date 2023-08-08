@@ -43,7 +43,7 @@ endif()
 
 # Set this if downstream would need to link additional boost
 # components
-set(Boost_DOWNSTREAM_COMPONENTS nowide)
+set(Boost_DOWNSTREAM_COMPONENTS "")
 
 set(namespace "${PROJECT_NAME}::")
 
