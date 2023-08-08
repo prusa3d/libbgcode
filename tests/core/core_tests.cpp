@@ -2,6 +2,8 @@
 
 #include "core/core.hpp"
 
+#include <boost/nowide/cstdio.hpp>
+
 using namespace bgcode::core;
 
 class ScopedFile
@@ -100,7 +102,7 @@ TEST_CASE("Checksum max cache size", "[Core]")
      const bool verify_checksum = true;
      set_checksum_max_cache_size(MAX_CHECKSUM_CACHE_SIZE);
 
-     FILE* file = fopen(filename.c_str(), "rb");
+     FILE* file = boost::nowide::fopen(filename.c_str(), "rb");
      REQUIRE(file != nullptr);
      ScopedFile scoped_file(file);
      REQUIRE(is_valid_binary_gcode(*file) == EResult::Success);
@@ -178,7 +180,7 @@ TEST_CASE("Checksum max cache size", "[Core]")
      const bool verify_checksum = true;
      set_checksum_max_cache_size(MAX_CHECKSUM_CACHE_SIZE);
 
-     FILE* file = fopen(filename.c_str(), "rb");
+     FILE* file = boost::nowide::fopen(filename.c_str(), "rb");
      REQUIRE(file != nullptr);
      ScopedFile scoped_file(file);
      REQUIRE(is_valid_binary_gcode(*file) == EResult::Success);

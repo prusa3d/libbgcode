@@ -4,6 +4,8 @@
 
 #include <fstream>
 
+#include <boost/nowide/cstdio.hpp>
+
 using namespace bgcode::core;
 using namespace bgcode::binarize;
 using namespace bgcode::convert;
@@ -20,12 +22,12 @@ private:
 void binary_to_ascii(const std::string& src_filename, const std::string& dst_filename)
 {
     // Open source file
-    FILE* src_file = fopen(src_filename.c_str(), "rb");
+    FILE* src_file = boost::nowide::fopen(src_filename.c_str(), "rb");
     REQUIRE(src_file != nullptr);
     ScopedFile scoped_src_file(src_file);
 
     // Open destination file
-    FILE* dst_file = fopen(dst_filename.c_str(), "wb");
+    FILE* dst_file = boost::nowide::fopen(dst_filename.c_str(), "wb");
     REQUIRE(dst_file != nullptr);
     ScopedFile scoped_dst_file(dst_file);
 
@@ -37,12 +39,12 @@ void binary_to_ascii(const std::string& src_filename, const std::string& dst_fil
 void ascii_to_binary(const std::string& src_filename, const std::string& dst_filename, const BinarizerConfig& config)
 {
     // Open source file
-    FILE* src_file = fopen(src_filename.c_str(), "rb");
+    FILE* src_file = boost::nowide::fopen(src_filename.c_str(), "rb");
     REQUIRE(src_file != nullptr);
     ScopedFile ab_scoped_src_file(src_file);
 
     // Open destination file
-    FILE* dst_file = fopen(dst_filename.c_str(), "wb");
+    FILE* dst_file = boost::nowide::fopen(dst_filename.c_str(), "wb");
     REQUIRE(dst_file != nullptr);
     ScopedFile ab_scoped_dst_file(dst_file);
 
@@ -54,12 +56,12 @@ void ascii_to_binary(const std::string& src_filename, const std::string& dst_fil
 void compare_binary_files(const std::string& filename1, const std::string& filename2)
 {
     // Open file 1
-    FILE* file1 = fopen(filename1.c_str(), "rb");
+    FILE* file1 = boost::nowide::fopen(filename1.c_str(), "rb");
     REQUIRE(file1 != nullptr);
     ScopedFile scoped_file1(file1);
 
     // Open file 2
-    FILE* file2 = fopen(filename2.c_str(), "rb");
+    FILE* file2 = boost::nowide::fopen(filename2.c_str(), "rb");
     REQUIRE(file2 != nullptr);
     ScopedFile scoped_file2(file2);
 
