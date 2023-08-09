@@ -186,6 +186,15 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
     static constexpr const std::string_view PrinterModel = "printer_model"sv;
     static constexpr const std::string_view FilamentType = "filament_type"sv;
     static constexpr const std::string_view NozzleDiameter = "nozzle_diameter"sv;
+    static constexpr const std::string_view BedTemperature = "bed_temperature"sv;
+    static constexpr const std::string_view BrimWidth = "brim_width"sv;
+    static constexpr const std::string_view FillDensity = "fill_density"sv;
+    static constexpr const std::string_view LayerHeight = "layer_height"sv;
+    static constexpr const std::string_view Temperature = "temperature"sv;
+    static constexpr const std::string_view Ironing = "ironing"sv;
+    static constexpr const std::string_view SupportMaterial = "support_material"sv;
+    static constexpr const std::string_view MaxLayerZ = "max_layer_z"sv;
+    static constexpr const std::string_view ExtruderColour = "extruder_colour"sv;
     static constexpr const std::string_view FilamentUsedMm = "filament used [mm]"sv;
     static constexpr const std::string_view FilamentUsedG = "filament used [g]"sv;
     static constexpr const std::string_view EstimatedPrintingTimeNormal = "estimated printing time (normal mode)"sv;
@@ -236,6 +245,15 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
     std::string printer_model;
     std::string filament_type;
     std::string nozzle_diameter;
+    std::string bed_temperature;
+    std::string brim_width;
+    std::string fill_density;
+    std::string layer_height;
+    std::string temperature;
+    std::string ironing;
+    std::string support_material;
+    std::string max_layer_z;
+    std::string extruder_colour;
     std::string filament_used_mm;
     std::string filament_used_g;
     std::string estimated_printing_time_normal;
@@ -284,14 +302,17 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
 
         // collect print + printer metadata
         // to keep the proper order they will be set into binary_data later
-        auto collect_metadata = [&](const std::string_view& key, std::string& value, bool shared_in_config = false, bool duplicated = false) {
-            if (duplicated || value.empty()) {
-                const std::string str = search_metadata_value(sv_line, key);
-                if (!str.empty()) {
-                    if (value.empty())
-                        value = str;
-                    if (!shared_in_config || !reading_config)
-                        processed_lines.emplace_back(lines_counter++);
+        auto collect_metadata = [&](const std::string_view& key, std::string& value, bool shared_in_config = false) {
+            const std::string str = search_metadata_value(sv_line, key);
+            if (!str.empty()) {
+                if (value.empty())
+                    value = str;
+                if (!shared_in_config) {
+                    processed_lines.emplace_back(lines_counter++);
+                    return true;
+                }
+                if (shared_in_config && !reading_config) {
+                    processed_lines.emplace_back(lines_counter++);
                     return true;
                 }
             }
@@ -301,9 +322,18 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
         if (collect_metadata(PrinterModel, printer_model, true)) return;
         if (collect_metadata(FilamentType, filament_type, true)) return;
         if (collect_metadata(NozzleDiameter, nozzle_diameter, true)) return;
-        if (collect_metadata(FilamentUsedMm, filament_used_mm, false, true)) return;
-        if (collect_metadata(FilamentUsedG, filament_used_g, false, true)) return;
-        if (collect_metadata(EstimatedPrintingTimeNormal, estimated_printing_time_normal, false, true)) return;
+        if (collect_metadata(BedTemperature, bed_temperature, true)) return;
+        if (collect_metadata(BrimWidth, brim_width, true)) return;
+        if (collect_metadata(FillDensity, fill_density, true)) return;
+        if (collect_metadata(LayerHeight, layer_height, true)) return;
+        if (collect_metadata(Temperature, temperature, true)) return;
+        if (collect_metadata(Ironing, ironing, true)) return;
+        if (collect_metadata(SupportMaterial, support_material, true)) return;
+        if (collect_metadata(MaxLayerZ, max_layer_z)) return;
+        if (collect_metadata(ExtruderColour, extruder_colour, true)) return;
+        if (collect_metadata(FilamentUsedMm, filament_used_mm)) return;
+        if (collect_metadata(FilamentUsedG, filament_used_g)) return;
+        if (collect_metadata(EstimatedPrintingTimeNormal, estimated_printing_time_normal)) return;
         if (collect_metadata(FilamentUsedCm3, filament_used_cm3)) return;
         if (collect_metadata(FilamentCost, filament_cost)) return;
         if (collect_metadata(TotalFilamentUsedG, total_filament_used_g)) return;
@@ -468,8 +498,19 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
     append_metadata(binary_data.printer_metadata.raw_data, std::string(PrinterModel), printer_model);
     append_metadata(binary_data.printer_metadata.raw_data, std::string(FilamentType), filament_type);
     append_metadata(binary_data.printer_metadata.raw_data, std::string(NozzleDiameter), nozzle_diameter);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(BedTemperature), bed_temperature);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(BrimWidth), brim_width);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(FillDensity), fill_density);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(LayerHeight), layer_height);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(Temperature), temperature);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(Ironing), ironing);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(SupportMaterial), support_material);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(MaxLayerZ), max_layer_z);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(ExtruderColour), extruder_colour);
     append_metadata(binary_data.printer_metadata.raw_data, std::string(FilamentUsedMm), filament_used_mm);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(FilamentUsedCm3), filament_used_cm3);
     append_metadata(binary_data.printer_metadata.raw_data, std::string(FilamentUsedG), filament_used_g);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(FilamentCost), filament_cost);
     append_metadata(binary_data.printer_metadata.raw_data, std::string(EstimatedPrintingTimeNormal), estimated_printing_time_normal);
 
     // update print metadata
@@ -498,7 +539,7 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
             r.quit_parsing();
 
         if (std::find(processed_lines.begin(), processed_lines.end(), lines_counter) == processed_lines.end())
-          binarizer.append_gcode(line.raw + "\n");
+            binarizer.append_gcode(line.raw + "\n");
 
         ++lines_counter;
     }))
