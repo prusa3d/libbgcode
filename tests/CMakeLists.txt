@@ -4,6 +4,10 @@ include(Catch)
 
 find_package(Boost ${Boost_VER} REQUIRED COMPONENTS nowide)
 
+if (MSVC)
+    set_target_properties(Boost::nowide PROPERTIES MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
+endif ()
+
 set(CATCH_EXTRA_ARGS "" CACHE STRING "Extra arguments for catch2 test suites.")
 
 set(TEST_DATA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/data)
