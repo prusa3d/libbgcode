@@ -6,6 +6,7 @@
 #include <optional>
 #include <functional>
 #include <charconv>
+#include <memory>
 
 namespace bgcode {
 using namespace core;
