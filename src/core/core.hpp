@@ -97,9 +97,21 @@ public:
 
     EChecksumType get_type() const;
 
-    // Appends the given data to the cache and performs a checksum update if
-    // the size of the cache exceeds the max checksum cache size.
-    void append(const std::vector<uint8_t>& data);
+    // Append vector of data to checksum
+    void append(const std::vector<uint8_t> &data)
+    {
+        append(data.data(), data.size());
+    }
+    // Append any aritmetic data to the checksum (shorthand for aritmetic types)
+    template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
+    void append(T &data)
+    {
+        static_assert(std::is_fundamental<T>::value, "only for basic types");
+        append(reinterpret_cast<const uint8_t*>(&data), sizeof(data));
+    }
+    // Append data to the checksum
+    void append(const uint8_t * data, size_t size);
+
     // Returns true if the given checksum is equal to this one
     bool matches(Checksum& other);
 
@@ -108,10 +120,7 @@ public:
 
 private:
     EChecksumType m_type;
-    std::vector<uint8_t> m_cache;
-    std::vector<uint8_t> m_checksum;
-
-    void update();
+    std::array<uint8_t, 4> m_checksum;
 };
 
 struct FileHeader
@@ -165,15 +174,10 @@ struct ThumbnailParams
 // Returns a string description of the given result
 extern BGCODE_CORE_EXPORT std::string_view translate_result(EResult result);
 
-// Get the max size of the cache used to calculate checksums, in bytes.
-extern BGCODE_CORE_EXPORT size_t get_checksum_max_cache_size();
-// Set the max size of the cache used to calculate checksums, in bytes.
-extern BGCODE_CORE_EXPORT void set_checksum_max_cache_size(size_t size);
-
 // Returns EResult::Success if the given file is a valid binary gcode
 // If check_contents is set to true, the order of the blocks is checked
 // Does not modify the file position
-extern BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents = false);
+extern BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents = false, uint8_t *checksum_calc_buffer = nullptr, size_t checksum_calc_buffer_size = 0);
 
 // Reads the file header.
 // If max_version is not null, version is checked against the passed value.
@@ -187,7 +191,7 @@ extern BGCODE_CORE_EXPORT EResult read_header(FILE& file, FileHeader& header, co
 // If return == EResult::Success:
 // - block_header will contain the header of the block.
 // - file position will be set at the start of the block parameters data.
-extern BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileHeader& file_header, BlockHeader& block_header, bool verify_checksum);
+extern BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileHeader& file_header, BlockHeader& block_header, uint8_t *checksum_calc_buffer = nullptr, size_t checksum_calc_buffer_size = 0);
 
 // Searches and reads next block header with the given type from the current file position.
 // File position must be at the start of a block header.
@@ -196,7 +200,16 @@ extern BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileH
 // - file position will be set at the start of the block parameters data.
 // otherwise:
 // - file position will keep the current value.
-extern BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileHeader& file_header, BlockHeader& block_header, EBlockType type, bool verify_checksum);
+extern BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileHeader& file_header, BlockHeader& block_header, EBlockType type, uint8_t *checksum_calc_buffer = nullptr, size_t checksum_calc_buffer_size = 0);
+
+// Calculates block checksum and verify it against checksum stored in file.
+// Caller is responsible for providing buffer for CRC calculation, bigger buffer means faster calculation and vice versa.
+// If return == EResult::Success:
+// - CRC is OK
+// If return == EResult::InvalidChecksum
+// - CRC mismatch
+// Or some other read related error
+extern BGCODE_CORE_EXPORT EResult verify_block_checksum(FILE& file, const FileHeader& file_header, const BlockHeader& block_header, uint8_t * calc_buffer, size_t calc_buffer_size);
 
 // Skips the content (parameters + data + checksum) of the block with the given block header.
 // File position must be at the start of the block parameters.
