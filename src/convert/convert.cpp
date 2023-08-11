@@ -6,6 +6,7 @@
 #include <optional>
 #include <functional>
 #include <charconv>
+#include <memory>
 
 namespace bgcode {
 using namespace core;
@@ -559,9 +560,14 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
 
 BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_file, bool verify_checksum)
 {
+    // initialize buffer for checksum calculation, if verify_checksum is true
+    std::vector<uint8_t> checksum_buffer;
+    if (verify_checksum)
+        checksum_buffer.resize(65535);
+
     auto write_line = [&](const std::string& line) {
-        fwrite(line.data(), 1, line.length(), &dst_file);
-        return !ferror(&dst_file);
+        const size_t wsize = fwrite(line.data(), 1, line.length(), &dst_file);
+        return !ferror(&dst_file) && wsize == line.length();
     };
 
     auto write_metadata = [&](const std::vector<std::pair<std::string, std::string>>& data) {
@@ -594,7 +600,7 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
     // convert file metadata block
     //
     BlockHeader block_header;
-    res = read_next_block_header(src_file, file_header, block_header, verify_checksum);
+    res = read_next_block_header(src_file, file_header, block_header, checksum_buffer.data(), checksum_buffer.size());
     if (res != EResult::Success)
         // propagate error
         return res;
@@ -614,7 +620,7 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
     //
     // convert printer metadata block
     //
-    res = read_next_block_header(src_file, file_header, block_header, verify_checksum);
+    res = read_next_block_header(src_file, file_header, block_header, checksum_buffer.data(), checksum_buffer.size());
     if (res != EResult::Success)
         // propagate error
         return res;
@@ -632,7 +638,7 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
     // convert thumbnail blocks
     //
     long restore_position = ftell(&src_file);
-    res = read_next_block_header(src_file, file_header, block_header, verify_checksum);
+    res = read_next_block_header(src_file, file_header, block_header, checksum_buffer.data(), checksum_buffer.size());
     if (res != EResult::Success)
         // propagate error
         return res;
@@ -670,7 +676,7 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
             return EResult::WriteError;
 
         restore_position = ftell(&src_file);
-        res = read_next_block_header(src_file, file_header, block_header, verify_checksum);
+        res = read_next_block_header(src_file, file_header, block_header, checksum_buffer.data(), checksum_buffer.size());
         if (res != EResult::Success)
             // propagate error
             return res;
@@ -706,7 +712,7 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
     if (res != EResult::Success)
         // propagate error
         return res;
-    res = read_next_block_header(src_file, file_header, block_header, EBlockType::GCode, verify_checksum);
+    res = read_next_block_header(src_file, file_header, block_header, EBlockType::GCode, checksum_buffer.data(), checksum_buffer.size());
     if (res != EResult::Success)
         // propagate error
         return res;
@@ -723,7 +729,7 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
         }
         if (ftell(&src_file) == file_size)
             break;
-        res = read_next_block_header(src_file, file_header, block_header, verify_checksum);
+        res = read_next_block_header(src_file, file_header, block_header, checksum_buffer.data(), checksum_buffer.size());
         if (res != EResult::Success)
             // propagate error
             return res;
@@ -733,7 +739,7 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
     // convert print metadata block
     //
     fseek(&src_file, restore_position, SEEK_SET);
-    res = read_next_block_header(src_file, file_header, block_header, verify_checksum);
+    res = read_next_block_header(src_file, file_header, block_header, checksum_buffer.data(), checksum_buffer.size());
     if (res != EResult::Success)
         // propagate error
         return res;
@@ -752,7 +758,7 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
     //
     // convert slicer metadata block
     //
-    res = read_next_block_header(src_file, file_header, block_header, verify_checksum);
+    res = read_next_block_header(src_file, file_header, block_header, checksum_buffer.data(), checksum_buffer.size());
     if (res != EResult::Success)
         // propagate error
         return res;

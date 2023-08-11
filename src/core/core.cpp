@@ -3,12 +3,10 @@
 
 namespace bgcode { namespace core {
 
-static size_t g_checksum_max_cache_size = 65536;
-
 static bool write_to_file(FILE& file, const void* data, size_t data_size)
 {
-    fwrite(data, 1, data_size, &file);
-    return !ferror(&file);
+    const size_t wsize = fwrite(data, 1, data_size, &file);
+    return !ferror(&file) && wsize == data_size;
 }
 
 static bool read_from_file(FILE& file, void* data, size_t data_size)
@@ -33,17 +31,18 @@ static uint32_t crc32_sw(const uint8_t* buffer, uint32_t length, uint32_t crc)
     return value;
 }
 
-static std::vector<uint8_t> encode(const void* data, size_t data_size)
+EResult verify_block_checksum(FILE& file, const FileHeader& file_header, const BlockHeader& block_header, uint8_t* buffer, size_t buffer_size)
 {
-    std::vector<uint8_t> ret(data_size);
-    memcpy(ret.data(), data, data_size);
-    return ret;
-}
+    if (buffer == nullptr || buffer_size == 0)
+        return EResult::InvalidBuffer;
 
-static EResult checksums_match(FILE& file, const FileHeader& file_header, const BlockHeader& block_header)
-{
-    // cache file position
-    const long curr_pos = ftell(&file);
+    // No checksum in file, no checking, just return success
+    if (file_header.checksum_type == (uint16_t)EChecksumType::None)
+        return EResult::Success;
+
+    // seek after header, where payload starts
+    if (fseek(&file, block_header.get_position() + (long)block_header.get_size(), SEEK_SET) != 0)
+        return EResult::ReadError;
 
     Checksum curr_cs((EChecksumType)file_header.checksum_type);
     // update block checksum block header
@@ -52,11 +51,10 @@ static EResult checksums_match(FILE& file, const FileHeader& file_header, const 
     // read block payload
     size_t remaining_payload_size = block_payload_size(block_header);
     while (remaining_payload_size > 0) {
-        const size_t size_to_read = std::min(remaining_payload_size, g_checksum_max_cache_size);
-        std::vector<uint8_t> payload(size_to_read);
-        if (!read_from_file(file, payload.data(), payload.size()))
+        const size_t size_to_read = std::min(remaining_payload_size, buffer_size);
+        if (!read_from_file(file, buffer, size_to_read))
             return EResult::ReadError;
-        curr_cs.append(payload);
+        curr_cs.append(buffer, size_to_read);
         remaining_payload_size -= size_to_read;
     }
 
@@ -71,9 +69,6 @@ static EResult checksums_match(FILE& file, const FileHeader& file_header, const 
     if (!curr_cs.matches(read_cs))
         return EResult::InvalidChecksum;
 
-    // restore file position
-    fseek(&file, curr_pos, SEEK_SET);
-
     return EResult::Success;
 }
 
@@ -84,58 +79,21 @@ static uint16_t compression_types_count() { return 1 + (uint16_t)ECompressionTyp
 Checksum::Checksum(EChecksumType type)
 : m_type(type)
 {
-    if (m_type != EChecksumType::None)
-        m_checksum = std::vector<uint8_t>(checksum_size(m_type), '\0');
+    m_checksum.fill(0);
+    m_size = checksum_size(type);
 }
 
 EChecksumType Checksum::get_type() const { return m_type; }
 
 void Checksum::append(const std::vector<uint8_t>& data)
 {
-    size_t remaining_data_size = std::distance(data.begin(), data.end());
-    auto it_begin = data.begin();
-    while (remaining_data_size + m_cache.size() > g_checksum_max_cache_size) {
-        update();
-        if (remaining_data_size > g_checksum_max_cache_size) {
-            m_cache.insert(m_cache.end(), it_begin, it_begin + g_checksum_max_cache_size);
-            it_begin += g_checksum_max_cache_size;
-            remaining_data_size -= g_checksum_max_cache_size;
-        }
-    }
-
-    m_cache.insert(m_cache.end(), it_begin, data.end());
+    append(data.data(), data.size());
 }
 
-bool Checksum::matches(Checksum& other)
+void Checksum::append(const uint8_t* data, size_t size)
 {
-    update();
-    other.update();
-    return m_checksum == other.m_checksum;
-}
-
-EResult Checksum::write(FILE& file)
-{
-    if (m_type != EChecksumType::None) {
-        update();
-        if (!write_to_file(file, (const void*)m_checksum.data(), m_checksum.size()))
-            return EResult::WriteError;
-    }
-    return EResult::Success;
-}
-
-EResult Checksum::read(FILE& file)
-{
-    if (m_type != EChecksumType::None) {
-        if (!read_from_file(file, (void*)m_checksum.data(), m_checksum.size()))
-            return EResult::ReadError;
-    }
-    return EResult::Success;
-}
-
-void Checksum::update()
-{
-    if (m_cache.empty())
-      return;
+    if (data == nullptr || size == 0)
+        return;
 
     switch (m_type)
     {
@@ -145,14 +103,36 @@ void Checksum::update()
     }
     case EChecksumType::CRC32:
     {
+        static_assert(sizeof(m_checksum) >= sizeof(uint32_t), "CRC32 checksum requires at least 4 bytes");
         const uint32_t old_crc = *(uint32_t*)m_checksum.data();
-        const uint32_t new_crc = crc32_sw(m_cache.data(), (uint32_t)m_cache.size(), old_crc);
+        const uint32_t new_crc = crc32_sw(data, (uint32_t)size, old_crc);
         *(uint32_t*)m_checksum.data() = new_crc;
         break;
     }
     }
+}
 
-    m_cache.clear();
+bool Checksum::matches(Checksum& other)
+{
+    return m_checksum == other.m_checksum;
+}
+
+EResult Checksum::write(FILE& file)
+{
+    if (m_type != EChecksumType::None) {
+        if (!write_to_file(file, (const void*)m_checksum.data(), m_size))
+            return EResult::WriteError;
+    }
+    return EResult::Success;
+}
+
+EResult Checksum::read(FILE& file)
+{
+    if (m_type != EChecksumType::None) {
+        if (!read_from_file(file, (void*)m_checksum.data(), m_size))
+            return EResult::ReadError;
+    }
+    return EResult::Success;
 }
 
 EResult FileHeader::write(FILE& file) const
@@ -201,11 +181,11 @@ BlockHeader::BlockHeader(uint16_t type, uint16_t compression, uint32_t uncompres
 
 void BlockHeader::update_checksum(Checksum& checksum) const
 {
-    checksum.append(encode((const void*)&type, sizeof(type)));
-    checksum.append(encode((const void*)&compression, sizeof(compression)));
-    checksum.append(encode((const void*)&uncompressed_size, sizeof(uncompressed_size)));
+    checksum.append(type);
+    checksum.append(compression);
+    checksum.append(uncompressed_size);
     if (compression != (uint16_t)ECompressionType::None)
-        checksum.append(encode((const void*)&compressed_size, sizeof(compressed_size)));
+        checksum.append(compressed_size);
 }
 
 long BlockHeader::get_position() const
@@ -253,7 +233,8 @@ EResult BlockHeader::read(FILE& file)
 }
 
 size_t BlockHeader::get_size() const {
-    return sizeof(type) + sizeof(compression) + sizeof(uncompressed_size) + ((compression == (uint16_t)ECompressionType::None)? 0 : sizeof(compressed_size));
+    return sizeof(type) + sizeof(compression) + sizeof(uncompressed_size) +
+        ((compression == (uint16_t)ECompressionType::None)? 0 : sizeof(compressed_size));
 }
 
 EResult ThumbnailParams::write(FILE& file) const {
@@ -275,9 +256,6 @@ EResult ThumbnailParams::read(FILE& file){
         return EResult::ReadError;
     return EResult::Success;
 }
-
-BGCODE_CORE_EXPORT size_t get_checksum_max_cache_size() { return g_checksum_max_cache_size; }
-BGCODE_CORE_EXPORT void set_checksum_max_cache_size(size_t size) { g_checksum_max_cache_size = size; }
 
 BGCODE_CORE_EXPORT std::string_view translate_result(EResult result)
 {
@@ -309,12 +287,13 @@ BGCODE_CORE_EXPORT std::string_view translate_result(EResult result)
     case EResult::InvalidBinaryGCodeFile:      { return "Invalid binary GCode file"sv; }
     case EResult::InvalidAsciiGCodeFile:       { return "Invalid ascii GCode file"sv; }
     case EResult::InvalidSequenceOfBlocks:     { return "Invalid sequence of blocks"sv; }
+    case EResult::InvalidBuffer:               { return "Invalid buffer"sv; }
     case EResult::AlreadyBinarized:            { return "Already binarized"sv; }
     }
     return std::string_view();
 }
 
-BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents)
+BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents, uint8_t* cs_buffer, size_t cs_buffer_size)
 {
     // cache file position
     const long curr_pos = ftell(&file);
@@ -348,7 +327,7 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
         }
         BlockHeader block_header;
         // read file metadata block header
-        res = read_next_block_header(file, file_header, block_header, false);
+        res = read_next_block_header(file, file_header, block_header, cs_buffer, cs_buffer_size);
         if (res != EResult::Success) {
             // restore file position
             fseek(&file, curr_pos, SEEK_SET);
@@ -369,7 +348,7 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
             // propagate error
             return res;
         }
-        res = read_next_block_header(file, file_header, block_header, false);
+        res = read_next_block_header(file, file_header, block_header, cs_buffer, cs_buffer_size);
         if (res != EResult::Success) {
             // restore file position
             fseek(&file, curr_pos, SEEK_SET);
@@ -390,7 +369,7 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
             // propagate error
             return res;
         }
-        res = read_next_block_header(file, file_header, block_header, false);
+        res = read_next_block_header(file, file_header, block_header, cs_buffer, cs_buffer_size);
         if (res != EResult::Success) {
             // restore file position
             fseek(&file, curr_pos, SEEK_SET);
@@ -405,7 +384,7 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
                 // propagate error
                 return res;
             }
-            res = read_next_block_header(file, file_header, block_header, false);
+            res = read_next_block_header(file, file_header, block_header, cs_buffer, cs_buffer_size);
             if (res != EResult::Success) {
                 // restore file position
                 fseek(&file, curr_pos, SEEK_SET);
@@ -429,7 +408,7 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
             // propagate error
             return res;
         }
-        res = read_next_block_header(file, file_header, block_header, false);
+        res = read_next_block_header(file, file_header, block_header, cs_buffer, cs_buffer_size);
         if (res != EResult::Success) {
             // restore file position
             fseek(&file, curr_pos, SEEK_SET);
@@ -453,7 +432,7 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
             }
             if (ftell(&file) == file_size)
                 break;
-            res = read_next_block_header(file, file_header, block_header, false);
+            res = read_next_block_header(file, file_header, block_header, cs_buffer, cs_buffer_size);
             if (res != EResult::Success) {
                 // restore file position
                 fseek(&file, curr_pos, SEEK_SET);
@@ -478,28 +457,28 @@ BGCODE_CORE_EXPORT EResult read_header(FILE& file, FileHeader& header, const uin
     return header.read(file, max_version);
 }
 
-BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileHeader& file_header, BlockHeader& block_header, bool verify_checksum)
+BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileHeader& file_header, BlockHeader& block_header,
+    uint8_t* cs_buffer, size_t cs_buffer_size)
 {
-    if (verify_checksum && (EChecksumType)file_header.checksum_type != EChecksumType::None) {
-        const EResult res = block_header.read(file);
-        if (res != EResult::Success)
-            // propagate error
-            return res;
-
-        return checksums_match(file, file_header, block_header);
+    EResult res = block_header.read(file);
+    if (res == EResult::Success && cs_buffer != nullptr && cs_buffer_size > 0) {
+        res = verify_block_checksum(file, file_header, block_header, cs_buffer, cs_buffer_size);
+        // return to payload position after checksum verification
+        if (fseek(&file, block_header.get_position() + (long)block_header.get_size(), SEEK_SET) != 0)
+            res = EResult::ReadError;
     }
-    else
-        return block_header.read(file);
+
+    return res;
 }
 
 BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileHeader& file_header, BlockHeader& block_header, EBlockType type,
-    bool verify_checksum)
+    uint8_t* cs_buffer, size_t cs_buffer_size)
 {
     // cache file position
     const long curr_pos = ftell(&file);
 
     do {
-        EResult res = read_next_block_header(file, file_header, block_header, false);
+        EResult res = read_next_block_header(file, file_header, block_header, nullptr, 0); // intentionally skip checksum verification
         if (res != EResult::Success)
             // propagate error
             return res;
@@ -511,14 +490,15 @@ BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileHeader& 
         }
         else if ((EBlockType)block_header.type == type) {
             // block found
-            if (verify_checksum) {
-                res = checksums_match(file, file_header, block_header);
-                if (res != EResult::Success)
-                    // propagate error
-                    return res;
-                else
-                    break;
+            if (cs_buffer != nullptr && cs_buffer_size > 0) {
+                // checksum verification requested
+                res = verify_block_checksum(file, file_header, block_header, cs_buffer, cs_buffer_size);
+                // return to payload position after checksum verification
+                if (fseek(&file, block_header.get_position() + (long)block_header.get_size(), SEEK_SET) != 0)
+                    res = EResult::ReadError;
+                return res; // propagate error or success
             }
+            return EResult::Success;
         }
 
         if (!feof(&file)) {
@@ -528,8 +508,6 @@ BGCODE_CORE_EXPORT EResult read_next_block_header(FILE& file, const FileHeader& 
                 return res;
         }
     } while (true);
-
-    return EResult::Success;
 }
 
 BGCODE_CORE_EXPORT size_t block_parameters_size(EBlockType type)
@@ -570,7 +548,7 @@ BGCODE_CORE_EXPORT size_t checksum_size(EChecksumType type)
 {
   switch (type)
   {
-  case EChecksumType::None: { return 0; }
+  case EChecksumType::None:  { return 0; }
   case EChecksumType::CRC32: { return 4; }
   }
   return 0;

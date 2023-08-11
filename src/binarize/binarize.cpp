@@ -16,8 +16,8 @@ namespace binarize {
 
 static bool write_to_file(FILE& file, const void* data, size_t data_size)
 {
-    fwrite(data, 1, data_size, &file);
-    return !ferror(&file);
+    const size_t wsize = fwrite(data, 1, data_size, &file);
+    return !ferror(&file) && wsize == data_size;
 }
 
 static bool read_from_file(FILE& file, void* data, size_t data_size)
@@ -414,7 +414,7 @@ EResult BaseMetadataBlock::write(FILE& file, EBlockType block_type, ECompression
         // update checksum with block header
         block_header.update_checksum(checksum);
         // update checksum with block payload
-        checksum.append(encode((const void*)&encoding_type, sizeof(encoding_type)));
+        checksum.append(encoding_type);
         if (!out_data.empty())
             checksum.append(out_data);
     }
@@ -637,9 +637,9 @@ EResult ThumbnailBlock::read_data(FILE& file, const FileHeader& file_header, con
 
 void ThumbnailBlock::update_checksum(Checksum& checksum) const
 {
-    checksum.append(encode((const void*)&params.format, sizeof(params.format)));
-    checksum.append(encode((const void*)&params.width, sizeof(params.width)));
-    checksum.append(encode((const void*)&params.height, sizeof(params.height)));
+    checksum.append(params.format);
+    checksum.append(params.width);
+    checksum.append(params.height);
     checksum.append(data);
 }
 

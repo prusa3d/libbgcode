@@ -82,16 +82,6 @@ static std::string thumbnail_format_as_string(EThumbnailFormat type)
     return "";
 };
 
-TEST_CASE("Checksum max cache size", "[Core]")
-{
-    std::cout << "\nTEST: Checksum max cache size\n";
-
-    const size_t MAX_CHECKSUM_CACHE_SIZE = 2048;
-    set_checksum_max_cache_size(MAX_CHECKSUM_CACHE_SIZE);
-    const size_t res = get_checksum_max_cache_size();
-    REQUIRE(res == MAX_CHECKSUM_CACHE_SIZE);
-}
-
  TEST_CASE("File transversal", "[Core]")
  {
      const std::string filename = std::string(TEST_DATA_DIR) + "/mini_cube_binary.gcode";
@@ -99,13 +89,12 @@ TEST_CASE("Checksum max cache size", "[Core]")
      std::cout << "File:" << filename << "\n";
 
      const size_t MAX_CHECKSUM_CACHE_SIZE = 2048;
-     const bool verify_checksum = true;
-     set_checksum_max_cache_size(MAX_CHECKSUM_CACHE_SIZE);
+     uint8_t checksum_verify_buffer[MAX_CHECKSUM_CACHE_SIZE];
 
      FILE* file = boost::nowide::fopen(filename.c_str(), "rb");
      REQUIRE(file != nullptr);
      ScopedFile scoped_file(file);
-     REQUIRE(is_valid_binary_gcode(*file) == EResult::Success);
+     REQUIRE(is_valid_binary_gcode(*file, true, checksum_verify_buffer, sizeof(checksum_verify_buffer)) == EResult::Success);
 
      fseek(file, 0, SEEK_END);
      const long file_size = ftell(file);
@@ -120,7 +109,7 @@ TEST_CASE("Checksum max cache size", "[Core]")
      do
      {
          // read block header
-         REQUIRE(read_next_block_header(*file, file_header, block_header, verify_checksum) == EResult::Success);
+         REQUIRE(read_next_block_header(*file, file_header, block_header, checksum_verify_buffer, sizeof(checksum_verify_buffer)) == EResult::Success);
          std::cout << "Block: " << block_type_as_string((EBlockType)block_header.type);
          std::cout << " - compression: " << compression_type_as_string((ECompressionType)block_header.compression);
          switch ((EBlockType)block_header.type)
@@ -177,13 +166,12 @@ TEST_CASE("Checksum max cache size", "[Core]")
      std::cout << "File:" << filename << "\n";
 
      const size_t MAX_CHECKSUM_CACHE_SIZE = 2048;
-     const bool verify_checksum = true;
-     set_checksum_max_cache_size(MAX_CHECKSUM_CACHE_SIZE);
+     uint8_t checksum_verify_buffer[MAX_CHECKSUM_CACHE_SIZE];
 
      FILE* file = boost::nowide::fopen(filename.c_str(), "rb");
      REQUIRE(file != nullptr);
      ScopedFile scoped_file(file);
-     REQUIRE(is_valid_binary_gcode(*file) == EResult::Success);
+     REQUIRE(is_valid_binary_gcode(*file, true, checksum_verify_buffer, sizeof(checksum_verify_buffer)) == EResult::Success);
 
      fseek(file, 0, SEEK_END);
      const long file_size = ftell(file);
@@ -197,7 +185,7 @@ TEST_CASE("Checksum max cache size", "[Core]")
      do
      {
          // search and read block header by type
-         REQUIRE(read_next_block_header(*file, file_header, block_header, EBlockType::GCode, verify_checksum) == EResult::Success);
+         REQUIRE(read_next_block_header(*file, file_header, block_header, EBlockType::GCode, checksum_verify_buffer, sizeof(checksum_verify_buffer)) == EResult::Success);
          std::cout << "Block type: " << block_type_as_string((EBlockType)block_header.type) << "\n";
 
          // move to next block header
