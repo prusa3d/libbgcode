@@ -82,7 +82,6 @@ static std::string thumbnail_format_as_string(EThumbnailFormat type)
     return "";
 };
 
-
  TEST_CASE("File transversal", "[Core]")
  {
      const std::string filename = std::string(TEST_DATA_DIR) + "/mini_cube_binary.gcode";
@@ -91,7 +90,6 @@ static std::string thumbnail_format_as_string(EThumbnailFormat type)
 
      const size_t MAX_CHECKSUM_CACHE_SIZE = 2048;
      uint8_t checksum_verify_buffer[MAX_CHECKSUM_CACHE_SIZE];
-     const bool verify_checksum = true;
 
      FILE* file = boost::nowide::fopen(filename.c_str(), "rb");
      REQUIRE(file != nullptr);
@@ -169,7 +167,6 @@ static std::string thumbnail_format_as_string(EThumbnailFormat type)
 
      const size_t MAX_CHECKSUM_CACHE_SIZE = 2048;
      uint8_t checksum_verify_buffer[MAX_CHECKSUM_CACHE_SIZE];
-
 
      FILE* file = boost::nowide::fopen(filename.c_str(), "rb");
      REQUIRE(file != nullptr);

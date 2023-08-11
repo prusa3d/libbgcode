@@ -16,8 +16,8 @@ namespace binarize {
 
 static bool write_to_file(FILE& file, const void* data, size_t data_size)
 {
-    fwrite(data, 1, data_size, &file);
-    return !ferror(&file);
+    const size_t wsize = fwrite(data, 1, data_size, &file);
+    return !ferror(&file) && wsize == data_size;
 }
 
 static bool read_from_file(FILE& file, void* data, size_t data_size)
