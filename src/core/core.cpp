@@ -77,6 +77,7 @@ Checksum::Checksum(EChecksumType type)
 : m_type(type)
 {
     m_checksum.fill(0);
+    m_size = checksum_size(type);
 }
 
 EChecksumType Checksum::get_type() const { return m_type; }
@@ -91,7 +92,7 @@ void Checksum::append(const uint8_t * data, size_t size)
     }
     case EChecksumType::CRC32:
     {
-        static_assert(sizeof(m_checksum) >= sizeof(uint32_t), "Insufficient size of checksum");
+        static_assert(sizeof(m_checksum) >= sizeof(uint32_t), "Insufficient MAX_CHECKSUM_SIZE");
         const uint32_t old_crc = *(uint32_t*)m_checksum.data();
         const uint32_t new_crc = crc32_sw(data, size, old_crc);
         *(uint32_t*)m_checksum.data() = new_crc;
@@ -108,7 +109,7 @@ bool Checksum::matches(Checksum& other)
 EResult Checksum::write(FILE& file)
 {
     if (m_type != EChecksumType::None) {
-        if (!write_to_file(file, (const void*)m_checksum.data(), m_checksum.size()))
+        if (!write_to_file(file, (const void*)m_checksum.data(), m_size))
             return EResult::WriteError;
     }
     return EResult::Success;
@@ -117,7 +118,7 @@ EResult Checksum::write(FILE& file)
 EResult Checksum::read(FILE& file)
 {
     if (m_type != EChecksumType::None) {
-        if (!read_from_file(file, (void*)m_checksum.data(), m_checksum.size()))
+        if (!read_from_file(file, (void*)m_checksum.data(), m_size))
             return EResult::ReadError;
     }
     return EResult::Success;

@@ -106,7 +106,6 @@ public:
     template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
     void append(T &data)
     {
-        static_assert(std::is_fundamental<T>::value, "only for basic types");
         append(reinterpret_cast<const uint8_t*>(&data), sizeof(data));
     }
     // Append data to the checksum
@@ -119,8 +118,11 @@ public:
     EResult read(FILE& file);
 
 private:
+
+    static constexpr size_t MAX_CHECKSUM_SIZE = 4; // max size of biggest checksum supported
+    size_t m_size; // actual size of current checksum
     EChecksumType m_type;
-    std::array<uint8_t, 4> m_checksum;
+    std::array<uint8_t, MAX_CHECKSUM_SIZE> m_checksum;
 };
 
 struct FileHeader
