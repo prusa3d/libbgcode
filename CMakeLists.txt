@@ -59,10 +59,12 @@ endif ()
 # Create an export header
 include(GenerateExportHeader)
 
+set(_srcloc src/${PROJECT_NAME})
+
 # Core component
 add_library(${_libname}_core
-    src/LibBGCode/core/core.cpp
-    src/LibBGCode/core/core.hpp
+    ${_srcloc}/core/core.cpp
+    ${_srcloc}/core/core.hpp
     # Add more source files here if needed
 )
 
@@ -73,7 +75,7 @@ generate_export_header(${_libname}_core
 target_include_directories(${_libname}_core
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/${PROJECT_NAME}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${_srcloc}>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
         $<INSTALL_INTERFACE:include>
 )
@@ -83,10 +85,10 @@ add_library(${namespace}${_libname}_core ALIAS ${_libname}_core)
 if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
     # Binarize component
     add_library(${_libname}_binarize
-        src/LibBGCode/binarize/binarize.cpp
-        src/LibBGCode/binarize/binarize.hpp
-        src/LibBGCode/binarize/meatpack.cpp
-        src/LibBGCode/binarize/meatpack.hpp
+        ${_srcloc}/binarize/binarize.cpp
+        ${_srcloc}/binarize/binarize.hpp
+        ${_srcloc}/binarize/meatpack.cpp
+        ${_srcloc}/binarize/meatpack.hpp
         # Add more source files here if needed
     )
 
@@ -113,8 +115,8 @@ endif ()
 if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
     # Convert component
     add_library(${_libname}_convert
-        src/LibBGCode/convert/convert.cpp
-        src/LibBGCode/convert/convert.hpp
+        ${_srcloc}/convert/convert.cpp
+        ${_srcloc}/convert/convert.hpp
         # Add more source files here if needed
     )
 
@@ -147,7 +149,7 @@ target_link_libraries(${_libname} INTERFACE ${_selected_libs})
 
 if (${PROJECT_NAME}_BUILD_CMD_TOOL)
     add_executable(${_libname}_cmd 
-        src/LibBGCode/cmd/main.cpp
+        ${_srcloc}/cmd/main.cpp
     )
 
     find_package(Boost ${Boost_VER} REQUIRED COMPONENTS nowide)
@@ -188,7 +190,7 @@ foreach(_comp ${_selected_components})
         INCLUDES DESTINATION include/${PROJECT_NAME}
     )
 
-    install(FILES src/LibBGCode/${_comp_lower}/${_comp_lower}.hpp DESTINATION include/${PROJECT_NAME}/${_comp_lower})
+    install(FILES ${_srcloc}/${_comp_lower}/${_comp_lower}.hpp DESTINATION include/${PROJECT_NAME}/${_comp_lower})
     install(FILES
         ${PROJECT_BINARY_DIR}/${_comp_lower}/export.h DESTINATION include/${PROJECT_NAME}/${_comp_lower}/
     )
