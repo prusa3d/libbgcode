@@ -51,6 +51,8 @@ void MPBinarizer::initialize(std::vector<uint8_t>& dst)
 {
     initialize_lookup_tables();
     append_command(Command_EnablePacking, dst);
+    if ((m_flags & Flag_OmitWhitespaces) != 0)
+        append_command(Command_EnableNoSpaces, dst);
     m_binarizing = true;
 }
 
@@ -224,6 +226,7 @@ void MPBinarizer::initialize_lookup_tables() {
 void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
 {
     bool unbinarizing = false;
+    bool nospace_enabled = false;
     bool cmd_active = false;             // Is a command pending
     uint8_t char_buf = 0;                // Buffers a character if dealing with out-of-sequence pairs
     size_t cmd_count = 0;                // Counts how many command bytes are received (need 2)
@@ -234,11 +237,13 @@ void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
     auto handle_command = [&](uint8_t c) {
         switch (c)
         {
-        case Command_EnablePacking:  { unbinarizing = true; break; }
-        case Command_DisablePacking: { unbinarizing = false; break; }
-        case Command_ResetAll:       { unbinarizing = false; break; }
+        case Command_EnablePacking:   { unbinarizing = true; break; }
+        case Command_DisablePacking:  { unbinarizing = false; break; }
+        case Command_EnableNoSpaces:  { nospace_enabled = true; break; }
+        case Command_DisableNoSpaces: { nospace_enabled = false; break; }
+        case Command_ResetAll:        { unbinarizing = false; break; }
         default:
-        case Command_QueryConfig:    { break; }
+        case Command_QueryConfig:     { break; }
         }
     };
 
@@ -246,7 +251,7 @@ void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
         char_out_buf[char_out_count++] = c;
     };
 
-    auto get_char = [](uint8_t c) {
+    auto get_char = [&](uint8_t c) {
         switch (c)
         {
         case 0b0000: { return '0'; }
@@ -260,7 +265,7 @@ void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
         case 0b1000: { return '8'; }
         case 0b1001: { return '9'; }
         case 0b1010: { return '.'; }
-        case 0b1011: { return 'E'; }
+        case 0b1011: { return nospace_enabled ? 'E' : ' '; }
         case 0b1100: { return '\n'; }
         case 0b1101: { return 'G'; }
         case 0b1110: { return 'X'; }
