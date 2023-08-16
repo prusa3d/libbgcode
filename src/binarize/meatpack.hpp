@@ -35,10 +35,10 @@ private:
 
     struct LookupTables
     {
-      std::array<uint8_t, 256> packable;
-      std::array<uint8_t, 256> value;
-      bool initialized;
-      unsigned char flags;
+        std::array<uint8_t, 256> packable;
+        std::array<uint8_t, 256> value;
+        bool initialized;
+        unsigned char flags;
     };
 
     static LookupTables s_lookup_tables;
