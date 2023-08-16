@@ -56,23 +56,13 @@ if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
     endif ()
 endif ()
 
-# For includes to be the same when integrating as sub-project and when using fing_package
-# file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} SYMBOLIC)
-if (UNIX)
-    file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} SYMBOLIC)
-else()
-    file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}" _dstDir)
-    file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src" _srcDir)
-    execute_process(COMMAND cmd.exe /c mklink /J "${_dstDir}" "${_srcDir}")
-endif()
-
 # Create an export header
 include(GenerateExportHeader)
 
 # Core component
 add_library(${_libname}_core
-    src/core/core.cpp
-    src/core/core.hpp
+    src/LibBGCode/core/core.cpp
+    src/LibBGCode/core/core.hpp
     # Add more source files here if needed
 )
 
@@ -83,6 +73,7 @@ generate_export_header(${_libname}_core
 target_include_directories(${_libname}_core
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/${PROJECT_NAME}>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
         $<INSTALL_INTERFACE:include>
 )
@@ -92,10 +83,10 @@ add_library(${namespace}${_libname}_core ALIAS ${_libname}_core)
 if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
     # Binarize component
     add_library(${_libname}_binarize
-        src/binarize/binarize.cpp
-        src/binarize/binarize.hpp
-        src/binarize/meatpack.cpp
-        src/binarize/meatpack.hpp
+        src/LibBGCode/binarize/binarize.cpp
+        src/LibBGCode/binarize/binarize.hpp
+        src/LibBGCode/binarize/meatpack.cpp
+        src/LibBGCode/binarize/meatpack.hpp
         # Add more source files here if needed
     )
 
@@ -122,8 +113,8 @@ endif ()
 if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
     # Convert component
     add_library(${_libname}_convert
-        src/convert/convert.cpp
-        src/convert/convert.hpp
+        src/LibBGCode/convert/convert.cpp
+        src/LibBGCode/convert/convert.hpp
         # Add more source files here if needed
     )
 
@@ -156,7 +147,7 @@ target_link_libraries(${_libname} INTERFACE ${_selected_libs})
 
 if (${PROJECT_NAME}_BUILD_CMD_TOOL)
     add_executable(${_libname}_cmd 
-        src/bgcode/main.cpp
+        src/LibBGCode/cmd/main.cpp
     )
 
     find_package(Boost ${Boost_VER} REQUIRED COMPONENTS nowide)
@@ -197,7 +188,7 @@ foreach(_comp ${_selected_components})
         INCLUDES DESTINATION include/${PROJECT_NAME}
     )
 
-    install(FILES src/${_comp_lower}/${_comp_lower}.hpp DESTINATION include/${PROJECT_NAME}/${_comp_lower})
+    install(FILES src/LibBGCode/${_comp_lower}/${_comp_lower}.hpp DESTINATION include/${PROJECT_NAME}/${_comp_lower})
     install(FILES
         ${PROJECT_BINARY_DIR}/${_comp_lower}/export.h DESTINATION include/${PROJECT_NAME}/${_comp_lower}/
     )
