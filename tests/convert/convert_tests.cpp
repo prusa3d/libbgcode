@@ -132,7 +132,11 @@ TEST_CASE("Convert from ascii to binary", "[Convert]")
     config.compression.printer_metadata = ECompressionType::None;
     config.compression.slicer_metadata = ECompressionType::Deflate;
     config.compression.gcode = ECompressionType::Heatshrink_12_4;
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+    config.gcode_encoding = EGCodeEncodingType::MeatPackCommentsExtended;
+#else
     config.gcode_encoding = EGCodeEncodingType::MeatPackComments;
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
     config.metadata_encoding = EMetadataEncodingType::INI;
     ascii_to_binary(ab_src_filename, ab_dst_filename, config);
 

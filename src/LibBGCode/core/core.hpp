@@ -10,6 +10,10 @@
 #include <string>
 #include <string_view>
 
+// Experimental code which replaces the tags (comments), used by GCodeViewer to decorate the toolpaths,
+// with MeatPack commands to try to reduce the size of the generated binary gcode file.
+#define ENABLE_MEATPACK_COMMENTS_EXTENDED 1
+
 namespace bgcode { namespace core {
 
 static constexpr const std::array<uint8_t, 4> MAGIC{ 'G', 'C', 'D', 'E' };
@@ -83,7 +87,12 @@ enum class EGCodeEncodingType : uint16_t
 {
     None,
     MeatPack,
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+    MeatPackComments,
+    MeatPackCommentsExtended
+#else
     MeatPackComments
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
 };
 
 enum class EThumbnailFormat : uint16_t

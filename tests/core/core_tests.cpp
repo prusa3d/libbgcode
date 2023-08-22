@@ -64,9 +64,12 @@ static std::string gcode_encoding_as_string(EGCodeEncodingType type)
 {
     switch (type)
     {
-    case EGCodeEncodingType::None:             { return "None"; }
-    case EGCodeEncodingType::MeatPack:         { return "MeatPack"; }
-    case EGCodeEncodingType::MeatPackComments: { return "MeatPackComments"; }
+    case EGCodeEncodingType::None:                     { return "None"; }
+    case EGCodeEncodingType::MeatPack:                 { return "MeatPack"; }
+    case EGCodeEncodingType::MeatPackComments:         { return "MeatPackComments"; }
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+    case EGCodeEncodingType::MeatPackCommentsExtended: { return "MeatPackCommentsExtended"; }
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
     }
     return "";
 };

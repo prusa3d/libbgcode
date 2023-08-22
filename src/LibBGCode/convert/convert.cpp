@@ -377,28 +377,28 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
 
         // update thumbnails
         if (!reading_thumbnail.has_value()) {
-            std::string_view sv_thumbnail_str;
+            std::string_view thumbnail_sv;
             if (sv_line.find(ThumbnailPNGBegin) == 0) {
                 reading_thumbnail = EThumbnailFormat::PNG;
-                sv_thumbnail_str = trim(sv_line.substr(ThumbnailPNGBegin.size()));
+                thumbnail_sv = trim(sv_line.substr(ThumbnailPNGBegin.size()));
             }
             else if (sv_line.find(ThumbnailJPGBegin) == 0) {
                 reading_thumbnail = EThumbnailFormat::JPG;
-                sv_thumbnail_str = trim(sv_line.substr(ThumbnailJPGBegin.size()));
+                thumbnail_sv = trim(sv_line.substr(ThumbnailJPGBegin.size()));
             }
             else if (sv_line.find(ThumbnailQOIBegin) == 0) {
                 reading_thumbnail = EThumbnailFormat::QOI;
-                sv_thumbnail_str = trim(sv_line.substr(ThumbnailQOIBegin.size()));
+                thumbnail_sv = trim(sv_line.substr(ThumbnailQOIBegin.size()));
             }
             if (reading_thumbnail.has_value()) {
                 ThumbnailBlock& thumbnail = binary_data.thumbnails.emplace_back(ThumbnailBlock());
                 thumbnail.params.format = (uint16_t)*reading_thumbnail;
-                pos = sv_thumbnail_str.find(" ");
+                pos = thumbnail_sv.find(" ");
                 if (pos == std::string_view::npos) {
                     parse_res = EResult::InvalidAsciiGCodeFile;
                     return;
                 }
-                const std::string_view sv_rect_str = trim(sv_thumbnail_str.substr(0, pos));
+                const std::string_view sv_rect_str = trim(thumbnail_sv.substr(0, pos));
                 std::pair<uint16_t, uint16_t> rect = extract_thumbnail_rect(sv_rect_str);
                 if (rect.first == 0 || rect.second == 0) {
                     parse_res = EResult::InvalidAsciiGCodeFile;
@@ -406,7 +406,7 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
                 }
                 thumbnail.params.width = rect.first;
                 thumbnail.params.height = rect.second;
-                const std::string_view sv_data_size_str = trim(sv_thumbnail_str.substr(pos + 1));
+                const std::string_view sv_data_size_str = trim(thumbnail_sv.substr(pos + 1));
                 size_t data_size;
                 to_int(sv_data_size_str, data_size);
                 if (data_size == 0) {

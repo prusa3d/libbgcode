@@ -1,8 +1,13 @@
 #include "meatpack.hpp"
+#include "../core/core.hpp"
 
 #include <unordered_map>
 #include <algorithm>
 #include <cassert>
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+#include <optional>
+#include <cstdio>
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
 
 namespace MeatPack {
 
@@ -14,6 +19,10 @@ static constexpr const uint8_t Command_ResetAll{ 249 };
 static constexpr const uint8_t Command_QueryConfig{ 248 };
 static constexpr const uint8_t Command_EnableNoSpaces{ 247 };
 static constexpr const uint8_t Command_DisableNoSpaces{ 246 };
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+static constexpr const uint8_t Command_Width{ 239 };
+static constexpr const uint8_t Command_Height{ 238 };
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
 static constexpr const uint8_t Command_SignalByte{ 0xFF };
 
 static constexpr const uint8_t BothUnpackable{ 0b11111111 };
@@ -42,6 +51,33 @@ static const std::unordered_map<char, uint8_t> ReverseLookupTbl = {
     { 'X',  0b00001110 },
     { '\0', 0b00001111 } // never used, 0b1111 is used to indicate the next 8-bits is a full character
 };
+
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+static std::string_view trim(const std::string_view& str)
+{
+    if (str.empty())
+        return std::string_view();
+    size_t start = 0;
+    while (start < str.size() - 1 && (str[start] == ' ' || str[start] == '\t')) { ++start; }
+    size_t end = str.size() - 1;
+    while (end > 0 && (str[end] == ' ' || str[end] == '\t')) { --end; }
+    if ((start == end && (str[end] == ' ' || str[end] == '\t')) || (start > end))
+        return std::string_view();
+    else
+        return std::string_view(&str[start], end - start + 1);
+}
+
+std::string_view trim_right(const std::string_view& str)
+{
+    if (str.back() != ' ')
+        return str;
+    auto bit = str.rbegin();
+    while (bit != str.rend() && *bit == ' ') {
+        ++bit;
+    }
+    return str.substr(0, std::distance(str.begin(), bit.base()));
+}
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
 
 MPBinarizer::LookupTables MPBinarizer::s_lookup_tables = { { 0 }, { 0 }, false, 0 };
 
@@ -116,9 +152,49 @@ void MPBinarizer::binarize_line(const std::string& line, std::vector<uint8_t>& d
             (s_lookup_tables.value[static_cast<uint8_t>(low)] & 0xF));
     };
 
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+    auto extract_value = [](const std::string& line, const std::string& key) {
+        std::optional<float> ret;
+        size_t pos = line.find(key);
+        if (pos != std::string::npos) {
+            pos = line.find(":", pos);
+            if (pos != std::string::npos) {
+                try
+                {
+                    ret = std::stof(std::string(trim(line.substr(pos + 1, line.length() - pos - 2))));
+                }
+                catch(...)
+                {
+                    // do nothing
+                }
+            }
+        }
+        return ret;
+    };
+
+    auto append_float = [](float src, std::vector<uint8_t>& dst) {
+        std::array<uint8_t, sizeof(float)> buf;
+        *(float*)buf.data() = src;
+        dst.insert(dst.end(), buf.begin(), buf.end());
+    };
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
+
     if (!line.empty()) {
         if ((m_flags & Flag_RemoveComments) == 0) {
             if (line[0] == ';') {
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+                if (std::optional<float> value = extract_value(line, "WIDTH"); value.has_value()) {
+                    append_command(Command_Width, dst);
+                    append_float(*value, dst);
+                    return;
+                }
+                else if (std::optional<float> value = extract_value(line, "HEIGHT"); value.has_value()) {
+                    append_command(Command_Height, dst);
+                    append_float(*value, dst);
+                    return;
+                }
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
+
                 if (m_binarizing) {
                     append_command(Command_DisablePacking, dst);
                     m_binarizing = false;
@@ -138,6 +214,7 @@ void MPBinarizer::binarize_line(const std::string& line, std::vector<uint8_t>& d
         std::string modifiedLine = line.substr(0, line.find(';'));
         if (modifiedLine.empty())
             return;
+#if !ENABLE_MEATPACK_COMMENTS_EXTENDED
         auto trim_right = [](const std::string& str) {
             if (str.back() != ' ')
                 return str;
@@ -147,6 +224,7 @@ void MPBinarizer::binarize_line(const std::string& line, std::vector<uint8_t>& d
             }
             return str.substr(0, std::distance(str.begin(), bit.base()));
         };
+#endif // !ENABLE_MEATPACK_COMMENTS_EXTENDED
         modifiedLine = trim_right(modifiedLine);
         modifiedLine = unified_method(modifiedLine);
         if (modifiedLine.back() != '\n')
@@ -234,6 +312,50 @@ void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
     std::array<uint8_t, 2> char_out_buf; // Output buffer for caching up to 2 characters
     size_t char_out_count = 0;           // Stores number of characters to be read out
 
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+    auto handle_command = [&](std::vector<uint8_t>::const_iterator& c, std::vector<uint8_t>::iterator& dst_it) {
+        switch (*c)
+        {
+        case Command_EnablePacking:   { unbinarizing = true; break; }
+        case Command_DisablePacking:  { unbinarizing = false; break; }
+        case Command_EnableNoSpaces:  { nospace_enabled = true; break; }
+        case Command_DisableNoSpaces: { nospace_enabled = false; break; }
+        case Command_ResetAll:        { unbinarizing = false; break; }
+        case Command_Width:           {
+            std::array<uint8_t, sizeof(float)> inbuf;
+            for (size_t i = 0; i < inbuf.size(); ++i) {
+                inbuf[i] = *(++c);
+            }
+            const float value = *(float*)inbuf.data();
+
+            char outbuf[64];
+            sprintf(outbuf, ";WIDTH:%.6g\n", value);
+            for (size_t i = 0; i < strlen(outbuf); ++i) {
+                *dst_it = outbuf[i];
+                ++dst_it;
+            }
+            break;
+        }
+        case Command_Height:          {
+            std::array<uint8_t, sizeof(float)> buf;
+            for (size_t i = 0; i < buf.size(); ++i) {
+                buf[i] = *(++c);
+            }
+            float value = *(float*)buf.data();
+
+            char outbuf[64];
+            sprintf(outbuf, ";HEIGHT:%.6g\n", value);
+            for (size_t i = 0; i < strlen(outbuf); ++i) {
+                *dst_it = outbuf[i];
+                ++dst_it;
+            }
+            break;
+        }
+        default:
+        case Command_QueryConfig:     { break; }
+        }
+    };
+#else
     auto handle_command = [&](uint8_t c) {
         switch (c)
         {
@@ -246,6 +368,7 @@ void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
         case Command_QueryConfig:     { break; }
         }
     };
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
 
     auto handle_output_char = [&](uint8_t c) {
         char_out_buf[char_out_count++] = c;
@@ -349,8 +472,12 @@ void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
 
     auto it_bin = begin;
     while (it_bin != end) {
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+        if (*it_bin == Command_SignalByte) {
+#else
         uint8_t c_bin = *it_bin;
         if (c_bin == Command_SignalByte) {
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
             if (cmd_count > 0) {
                 cmd_active = true;
                 cmd_count = 0;
@@ -360,7 +487,11 @@ void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
         }
         else {
             if (cmd_active) {
-                handle_command(c_bin);
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+              handle_command(it_bin, it_unbin_end);
+#else
+              handle_command(c_bin);
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
                 cmd_active = false;
             }
             else {
@@ -369,7 +500,11 @@ void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
                     cmd_count = 0;
                 }
 
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+                handle_rx_char(*it_bin);
+#else
                 handle_rx_char(c_bin);
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
             }
         }
 

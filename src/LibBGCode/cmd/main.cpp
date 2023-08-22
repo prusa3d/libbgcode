@@ -27,7 +27,11 @@ static const std::vector<Parameter> parameters = {
     { "printer_metadata_compression"sv, { "None"sv, "Deflate"sv, "Heatshrink_11_4"sv, "Heatshrink_12_4"sv }, (int)BinarizerConfig().compression.printer_metadata },
     { "slicer_metadata_compression"sv, { "None"sv, "Deflate"sv, "Heatshrink_11_4"sv, "Heatshrink_12_4"sv }, (int)BinarizerConfig().compression.slicer_metadata },
     { "gcode_compression"sv, { "None"sv, "Deflate"sv, "Heatshrink_11_4"sv, "Heatshrink_12_4"sv }, (int)BinarizerConfig().compression.gcode },
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+    { "gcode_encoding"sv, { "None"sv, "MeatPack"sv, "MeatPackComments"sv, "MeatPackExtended"sv }, (int)BinarizerConfig().gcode_encoding },
+#else
     { "gcode_encoding"sv, { "None"sv, "MeatPack"sv, "MeatPackComments"sv }, (int)BinarizerConfig().gcode_encoding },
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
     { "metadata_encoding"sv, { "INI"sv }, (int)BinarizerConfig().metadata_encoding }
 };
 

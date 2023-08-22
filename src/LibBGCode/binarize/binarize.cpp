@@ -35,7 +35,11 @@ static std::vector<uint8_t> encode(const void* data, size_t data_size)
 
 static uint16_t metadata_encoding_types_count() { return 1 + (uint16_t)EMetadataEncodingType::INI; }
 static uint16_t thumbnail_formats_count()       { return 1 + (uint16_t)EThumbnailFormat::QOI; }
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+static uint16_t gcode_encoding_types_count()    { return 1 + (uint16_t)EGCodeEncodingType::MeatPackCommentsExtended; }
+#else
 static uint16_t gcode_encoding_types_count()    { return 1 + (uint16_t)EGCodeEncodingType::MeatPackComments; }
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
 
 static bool encode_metadata(const std::vector<std::pair<std::string, std::string>>& src, std::vector<uint8_t>& dst,
     EMetadataEncodingType encoding_type)
@@ -94,6 +98,9 @@ static bool encode_gcode(const std::string& src, std::vector<uint8_t>& dst, EGCo
     }
     case EGCodeEncodingType::MeatPack:
     case EGCodeEncodingType::MeatPackComments:
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+    case EGCodeEncodingType::MeatPackCommentsExtended:
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
     {
         uint8_t binarizer_flags = (encoding_type == EGCodeEncodingType::MeatPack) ? MeatPack::Flag_RemoveComments : 0;
         binarizer_flags |= MeatPack::Flag_OmitWhitespaces;
@@ -127,6 +134,9 @@ static bool decode_gcode(const std::vector<uint8_t>& src, std::string& dst, EGCo
     }
     case EGCodeEncodingType::MeatPack:
     case EGCodeEncodingType::MeatPackComments:
+#if ENABLE_MEATPACK_COMMENTS_EXTENDED
+    case EGCodeEncodingType::MeatPackCommentsExtended:
+#endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
     {
         MeatPack::unbinarize(src, dst);
         break;
