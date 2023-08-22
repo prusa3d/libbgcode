@@ -7,6 +7,7 @@
 #if ENABLE_MEATPACK_COMMENTS_EXTENDED
 #include <optional>
 #include <cstdio>
+#include <cstring>
 #endif // ENABLE_MEATPACK_COMMENTS_EXTENDED
 
 namespace MeatPack {
