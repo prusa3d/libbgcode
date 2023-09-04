@@ -539,7 +539,7 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
         if (parse_res != EResult::Success)
             r.quit_parsing();
 
-        if (std::find(processed_lines.begin(), processed_lines.end(), lines_counter) == processed_lines.end())
+        if (!std::binary_search(processed_lines.begin(), processed_lines.end(), lines_counter))
             binarizer.append_gcode(line.raw + "\n");
 
         ++lines_counter;
