@@ -43,6 +43,20 @@ static const std::unordered_map<char, uint8_t> ReverseLookupTbl = {
     { '\0', 0b00001111 } // never used, 0b1111 is used to indicate the next 8-bits is a full character
 };
 
+static std::string_view trim(const std::string_view& str)
+{
+    if (str.empty())
+        return std::string_view();
+    size_t start = 0;
+    while (start < str.size() - 1 && (str[start] == ' ' || str[start] == '\t')) { ++start; }
+    size_t end = str.size() - 1;
+    while (end > 0 && (str[end] == ' ' || str[end] == '\t')) { --end; }
+    if ((start == end && (str[end] == ' ' || str[end] == '\t')) || (start > end))
+        return std::string_view();
+    else
+        return std::string_view(&str[start], end - start + 1);
+}
+
 MPBinarizer::LookupTables MPBinarizer::s_lookup_tables = { { 0 }, { 0 }, false, 0 };
 
 MPBinarizer::MPBinarizer(uint8_t flags) : m_flags(flags) {}
@@ -135,19 +149,9 @@ void MPBinarizer::binarize_line(const std::string& line, std::vector<uint8_t>& d
             line.size() < 2)
             return;
 
-        std::string modifiedLine = line.substr(0, line.find(';'));
+        std::string modifiedLine = std::string(trim(std::string_view(line.substr(0, line.find(';')))));
         if (modifiedLine.empty())
             return;
-        auto trim_right = [](const std::string& str) {
-            if (str.back() != ' ')
-                return str;
-            auto bit = str.rbegin();
-            while (bit != str.rend() && *bit == ' ') {
-                ++bit;
-            }
-            return str.substr(0, std::distance(str.begin(), bit.base()));
-        };
-        modifiedLine = trim_right(modifiedLine);
         modifiedLine = unified_method(modifiedLine);
         if (modifiedLine.back() != '\n')
             modifiedLine.push_back('\n');
