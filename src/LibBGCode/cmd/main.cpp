@@ -72,12 +72,14 @@ bool parse_args(int argc, const char* argv[], std::string& src_filename, bool& s
 
     size_t pos = arguments[1].find_last_of(".");
     if (pos == std::string::npos) {
-        std::cout << "Invalid filename " << arguments[1] << " (required .gcode extension)\n";
+        std::cout << "Invalid filename " << arguments[1] << " (required extensions: .gcode or .bgcode or .bgc)\n";
         return false;
     }
     const std::string_view extension = arguments[1].substr(pos);
-    if (extension != ".gcode" && extension != ".GCODE") {
-        std::cout << "Found invalid extension '" << extension << "' (required .gcode extension)\n";
+    if (extension != ".gcode" && extension != ".GCODE" &&
+        extension != ".bgcode" && extension != ".BGCODE" &&
+        extension != ".bgc" && extension != ".BGC") {
+        std::cout << "Found invalid extension '" << extension << "' (required extensions: .gcode or .bgcode or .bgc)\n";
         return false;
     }
     src_filename = arguments[1];
@@ -173,9 +175,13 @@ int main(int argc, const char* argv[])
     }
     ScopedFile scoped_src_file(src_file);
 
-    const std::string src_stem = src_filename.substr(0, src_filename.find_last_of("."));
-    const std::string dst = src_is_binary ? "_ascii" : "_binary";
-    const std::string dst_filename = src_stem + dst + ".gcode";
+    const size_t pos = src_filename.find_last_of(".");
+    const std::string src_stem = src_filename.substr(0, pos);
+    const std::string src_extension = (pos != std::string::npos) ? src_filename.substr(pos) : "";
+    const std::string dst_extension = src_is_binary ?
+        (src_extension == ".gcode") ? ".1.gcode" : ".gcode" :
+        (src_extension == ".bgcode") ? ".1.bgcode" : ".bgcode";
+    const std::string dst_filename = src_stem + dst_extension;
 
     // Open destination file
     FILE* dst_file = boost::nowide::fopen(dst_filename.c_str(), "wb");
