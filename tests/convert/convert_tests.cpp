@@ -108,9 +108,9 @@ TEST_CASE("Convert from binary to ascii", "[Convert]")
 {
     std::cout << "\nTEST: Convert from binary to ascii\n";
 
-    const std::string src_filename = std::string(TEST_DATA_DIR) + "/mini_cube_binary.gcode";
-    const std::string dst_filename = std::string(TEST_DATA_DIR) + "/mini_cube_binary_converted.gcode";
-    const std::string check_filename = std::string(TEST_DATA_DIR) + "/mini_cube_binary_ascii.gcode";
+    const std::string src_filename = std::string(TEST_DATA_DIR) + "/mini_cube_b.bgcode";
+    const std::string dst_filename = std::string(TEST_DATA_DIR) + "/mini_cube_b.gcode";
+    const std::string check_filename = std::string(TEST_DATA_DIR) + "/mini_cube_b_ref.bgcode";
 
     // convert from binary to ascii
     binary_to_ascii(src_filename, dst_filename);
@@ -123,8 +123,8 @@ TEST_CASE("Convert from ascii to binary", "[Convert]")
     std::cout << "\nTEST: Convert from ascii to binary\n";
 
     // convert from ascii to binary
-    const std::string ab_src_filename = std::string(TEST_DATA_DIR) + "/mini_cube_ascii.gcode";
-    const std::string ab_dst_filename = std::string(TEST_DATA_DIR) + "/mini_cube_ascii_converted.gcode";
+    const std::string ab_src_filename = std::string(TEST_DATA_DIR) + "/mini_cube_a.gcode";
+    const std::string ab_dst_filename = std::string(TEST_DATA_DIR) + "/mini_cube_a.bgcode";
     BinarizerConfig config;
     config.checksum = EChecksumType::CRC32;
     config.compression.file_metadata = ECompressionType::None;
@@ -138,7 +138,7 @@ TEST_CASE("Convert from ascii to binary", "[Convert]")
 
     // convert back from binary to ascii 
     const std::string ba_src_filename = ab_dst_filename;
-    const std::string ba_dst_filename = std::string(TEST_DATA_DIR) + "/mini_cube_ascii_converted_converted.gcode";
+    const std::string ba_dst_filename = std::string(TEST_DATA_DIR) + "/mini_cube_a_final.gcode";
     binary_to_ascii(ba_src_filename, ba_dst_filename);
 
     // compare results
