@@ -1,10 +1,8 @@
-libbgcode
-=========
+# libbgcode
 
 Prusa Block &amp; Binary G-code reader / writer / converter
 
-Description
-===========
+# Description
 
 A new G-code file format featuring the following improvements over the legacy G-code:
 1) Block structure with distinct blocks for metadata vs. G-code
@@ -20,33 +18,30 @@ A new G-code file format featuring the following improvements over the legacy G-
 
 ### core API
 
-**core** contains the basic definitions and functionality which allow to read a G-code file in binary format as defined into [SPECIFICATIONS](doc/specifications.md).
+**core api** contains the basic definitions and functionality which allow to read a G-code file in binary format as defined into [SPECIFICATIONS](doc/specifications.md).
 
 See [src/LibBGCode/core/core.hpp](src/LibBGCode/core/core.hpp)
 
 ### binarize API
 
-**binarize** contains the definitions and functionality which allow to write a G-code file in binary format as defined into [SPECIFICATIONS](doc/specifications.md).
+**binarize api** contains the definitions and functionality which allow to write a G-code file in binary format as defined into [SPECIFICATIONS](doc/specifications.md).
 
 See [src/LibBGCode/binarize/binarize.hpp](src/LibBGCode/binarize/binarize.hpp)
 
 ### convert API
 
-**convert** contains the functionality which allow to convert G-code files to/from binary format as defined into [SPECIFICATIONS](doc/specifications.md).
+**convert api** contains the functionality which allow to convert G-code files to/from binary format as defined into [SPECIFICATIONS](doc/specifications.md).
 
 See [src/LibBGCode/convert/convert.hpp](src/LibBGCode/convert/convert.hpp)
 
-Specifications
-==============
+# Specifications
 
 See [SPECIFICATIONS](doc/specifications.md) for file format specifications.
 
-Building
-========
+# Building
 
 See [BUILDING](doc/building.md) for building instructions.
 
-Command line application
-========================
+# Command line application
 
 See [BGCODE](doc/bgcode.md) for instructions.

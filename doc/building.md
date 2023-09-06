@@ -1,8 +1,8 @@
 _**Contents**_
 
-  * [Linux](#building-on-linux)
-  * [Mac OS X](#building-on-mac-os-x)
-  * [Windows](#building-on-windows)
+  * [Building on Linux](#building-on-linux)
+  * [Building on Mac OS X](#building-on-mac-os-x)
+  * [Building on Windows](#building-on-windows)
   
 # Building on Linux
 
@@ -63,7 +63,9 @@ c:\src\libbgcode\deps\build> cmake --build .
 ```
 
 All the dependencies files will be generated into the folder:
->c:\src\libbgcode\deps\build\destdir\usr\local
+```
+c:\src\libbgcode\deps\build\destdir\usr\local
+```
 
 ### Generate Visual Studio project file for libbgcode, referencing the precompiled dependencies.
 
@@ -83,12 +85,13 @@ Note that `CMAKE_PREFIX_PATH` must be absolute path. A relative path like "....\
 
 ### Compile/Install libbgcode.
 
-Double-click c:\src\libbgcode\build\LibBGCode.sln to open in Visual Studio 2019.
-OR
-Open Visual Studio for C++ development (VS asks this the first time you start it).
+Double-click c:\src\libbgcode\build\LibBGCode.sln to open in Visual Studio 2019 or open Visual Studio for C++ development (VS asks this the first time you start it).
 
 To compile, run Build->Build Solution or press F7 for every variant (Debug/Release) you want to build.
+
 To install, select INSTALL project in the Solution Explorer and run Build->Build INSTALL or right-click on INSTALL project in Solution Explorer and select Build.
 
 All the library files will be installed into the folder:
->c:\src\libbgcode\retail
+```
+c:\src\libbgcode\retail
+```

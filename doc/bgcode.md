@@ -103,9 +103,11 @@ Default value: `0`
 
 For example to convert a gcode file from ascii to binary format, with the following settins:
 
-> gcode_encoding = MeatPack algorithm modified to keep comment lines
-> gcode_compression = Heatshrink algorithm with window size 12 and lookahead size 4
-> slicer_metadata_compression = Deflate algorithm
+```
+gcode_encoding              = MeatPack algorithm modified to keep comment lines
+gcode_compression           = Heatshrink algorithm with window size 12 and lookahead size 4
+slicer_metadata_compression = Deflate algorithm
+```
 
 run:
 ```
