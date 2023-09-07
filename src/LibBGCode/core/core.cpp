@@ -289,6 +289,9 @@ BGCODE_CORE_EXPORT std::string_view translate_result(EResult result)
     case EResult::InvalidSequenceOfBlocks:     { return "Invalid sequence of blocks"sv; }
     case EResult::InvalidBuffer:               { return "Invalid buffer"sv; }
     case EResult::AlreadyBinarized:            { return "Already binarized"sv; }
+    case EResult::MissingPrinterMetadata:      { return "Missing printer metadata"sv; }
+    case EResult::MissingPrintMetadata:        { return "Missing print metadata"sv; }
+    case EResult::MissingSlicerMetadata:       { return "Missing slicer metadata"sv; }
     }
     return std::string_view();
 }
@@ -326,7 +329,7 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
             return res;
         }
         BlockHeader block_header;
-        // read file metadata block header
+        // read file metadata block header, if present
         res = read_next_block_header(file, file_header, block_header, cs_buffer, cs_buffer_size);
         if (res != EResult::Success) {
             // restore file position
@@ -334,26 +337,29 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
             // propagate error
             return res;
         }
-        if ((EBlockType)block_header.type != EBlockType::FileMetadata) {
+        if ((EBlockType)block_header.type != EBlockType::FileMetadata &&
+            (EBlockType)block_header.type != EBlockType::PrinterMetadata) {
             // restore file position
             fseek(&file, curr_pos, SEEK_SET);
             return EResult::InvalidBlockType;
         }
 
-        // read printer metadata block header
-        res = skip_block(file, file_header, block_header);
-        if (res != EResult::Success) {
-            // restore file position
-            fseek(&file, curr_pos, SEEK_SET);
-            // propagate error
-            return res;
-        }
-        res = read_next_block_header(file, file_header, block_header, cs_buffer, cs_buffer_size);
-        if (res != EResult::Success) {
-            // restore file position
-            fseek(&file, curr_pos, SEEK_SET);
-            // propagate error
-            return res;
+        // read printer metadata block header, if file metadata block is present
+        if ((EBlockType)block_header.type == EBlockType::FileMetadata) {
+            res = skip_block(file, file_header, block_header);
+            if (res != EResult::Success) {
+                // restore file position
+                fseek(&file, curr_pos, SEEK_SET);
+                // propagate error
+                return res;
+            }
+            res = read_next_block_header(file, file_header, block_header, cs_buffer, cs_buffer_size);
+            if (res != EResult::Success) {
+                // restore file position
+                fseek(&file, curr_pos, SEEK_SET);
+                // propagate error
+                return res;
+            }
         }
         if ((EBlockType)block_header.type != EBlockType::PrinterMetadata) {
             // restore file position

@@ -47,7 +47,10 @@ enum class EResult : uint16_t
     InvalidAsciiGCodeFile,
     InvalidSequenceOfBlocks,
     InvalidBuffer,
-    AlreadyBinarized
+    AlreadyBinarized,
+    MissingPrinterMetadata,
+    MissingPrintMetadata,
+    MissingSlicerMetadata,
 };
 
 enum class EChecksumType : uint16_t

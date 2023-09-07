@@ -110,7 +110,7 @@ TEST_CASE("Convert from binary to ascii", "[Convert]")
 
     const std::string src_filename = std::string(TEST_DATA_DIR) + "/mini_cube_b.bgcode";
     const std::string dst_filename = std::string(TEST_DATA_DIR) + "/mini_cube_b.gcode";
-    const std::string check_filename = std::string(TEST_DATA_DIR) + "/mini_cube_b_ref.bgcode";
+    const std::string check_filename = std::string(TEST_DATA_DIR) + "/mini_cube_b_ref.gcode";
 
     // convert from binary to ascii
     binary_to_ascii(src_filename, dst_filename);
