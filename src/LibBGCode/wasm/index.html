@@ -29,23 +29,23 @@
 
     <script>
         function getFileExtension(file) {
-            // Get the file name from the File object
-            const fileName = file.name;
-
-            // Split the file name into an array using dot (.) as the separator
-            const parts = fileName.split(".");
-
-            // Check if there's more than one part (i.e., there's an extension)
+            const parts = file.name.split(".");
+            var ret = "";
             if (parts.length > 1) {
-                // Get the last part as the file extension
-                const extension = parts[parts.length - 1];
-
-                // Return the extension in lowercase (optional)
-                return extension.toLowerCase();
-            } else {
-                // If there's no extension or the file name starts with a dot (.), return an empty string
-                return "";
+                ret = parts[parts.length - 1].toLowerCase();
             }
+
+            return ret;
+        }
+
+        function getFileName(file) {
+            const parts = file.name.split(".");
+            var ret = "";
+            if (parts.length > 1) {
+                ret = parts[0].toLowerCase();
+            }
+
+            return ret;
         }
 
         document.addEventListener("DOMContentLoaded", function () {
@@ -58,18 +58,23 @@
 
             var binaryGcode = null;
             var asciiGcode  = null;
+            var jsfile = null;
 
             processButton.addEventListener("click", function () {
                 // Simulate processing by adding a timeout (replace with your actual processing logic)
                 processingStatus.style.display = "block";
 
+                binaryGcode = null;
+                asciiGcode  = null;
+
                 if (fileInput.files.length > 0) {
-                    let jsfile = fileInput.files.item(0);
+                    jsfile = fileInput.files.item(0);
 
                     let processAscii = function (data) {
                         let config = Module.get_config();
                         config.compression.file_metadata = Module.BGCode_CompressionType.Heatshrink_11_4;
-                        binaryGcode = Module.ascii2bgcode_cfg(data, config);
+                        let outbuf = Module.ascii2bgcode_cfg(data, config);
+                        binaryGcode = new Uint8Array(outbuf);
                     }
 
                     let processBinary = function (data) {
@@ -87,28 +92,24 @@
                         downloadLink.style.display = "block";
                     });
                 }
-
-                // Here, you would typically send the file to your server for processing
-                // Replace the setTimeout with your actual processing code
             });
 
             downloadButton.addEventListener("click", function () {
-                // Here, you can set the processed file data to be downloaded
+                var url = null;
                 if (binaryGcode) {
                     const blob = new Blob([binaryGcode], { type: "application/octet-stream" });
-                    const url = window.URL.createObjectURL(blob);
+                    url = window.URL.createObjectURL(blob);
 
-                    downloadLink.download = "processed.gcode";
-                    // Set the href and click the link to trigger the download
-                    downloadLink.href = url;
+                    downloadLink.download = getFileName(jsfile) + ".bgcode";
                 } else if (asciiGcode) {
                     const blob = new Blob([asciiGcode], { type: "text/plain" });
-                    const url = window.URL.createObjectURL(blob);
+                    url = window.URL.createObjectURL(blob);
 
-                    downloadLink.download = "processed.gcode";
-                    // Set the href and click the link to trigger the download
-                    downloadLink.href = url;
+                    downloadLink.download = getFileName(jsfile) + ".gcode";
                 }
+
+                // Set the href and click the link to trigger the download
+                downloadLink.href = url;
             });
         });
     </script>

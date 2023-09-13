@@ -7,9 +7,10 @@
 
 #include "convert/convert.hpp"
 
-template<class Fn, class...Args>
-std::string convert(std::string in, Fn &&fn, Args &&...args)
+emscripten::val ascii2bgcode_cfg(std::string in, bgcode::binarize::BinarizerConfig config)
 {
+    emscripten::val ret = emscripten::val::null();
+
     FILE * fin = fmemopen(in.data(), in.size(), "r");
 
     char *outbuf = nullptr;
@@ -17,21 +18,28 @@ std::string convert(std::string in, Fn &&fn, Args &&...args)
 
     FILE * fout = open_memstream(&outbuf, &outsz);
 
-    fn(*fin, *fout, std::forward<Args>(args)...);
+    if (fout == nullptr) {
+        std::string ferrstr = std::string("console.log('Can not open writable memory stream!')");
+        emscripten_run_script(ferrstr.c_str());
+        return ret;
+    }
+
+    bgcode::core::EResult result = bgcode::convert::from_ascii_to_binary(*fin, *fout, config);
+    if (result != bgcode::core::EResult::Success) {
+        std::string astr = std::string("console.error('Error when translating gcode: ");
+        astr += translate_result(result);
+        astr += "')";
+        emscripten_run_script(astr.c_str());
+    }
+
     fclose(fin);
     fclose(fout);
 
-    std::string outstr;
-    outstr.reserve(outsz);
-    std::copy(outbuf, outbuf + outsz, std::back_inserter(outstr));
+    ret = emscripten::val::array(outbuf, outbuf + outsz);
+
     free(outbuf);
 
-    return outstr;
-}
-
-std::string ascii2bgcode_cfg(std::string in, bgcode::binarize::BinarizerConfig config)
-{
-    return convert(std::move(in), bgcode::convert::from_ascii_to_binary, config);
+    return ret;
 }
 
 bgcode::binarize::BinarizerConfig get_config()
@@ -49,21 +57,55 @@ bgcode::binarize::BinarizerConfig get_config()
     return config;
 }
 
-std::string ascii2bgcode(std::string in)
+emscripten::val ascii2bgcode(std::string in)
 {
     return ascii2bgcode_cfg(std::move(in), get_config());
+}
+
+std::string bgcode2ascii_vf(std::string in, bool verify)
+{
+    std::string ret;
+
+    FILE * fin = fmemopen(in.data(), in.size(), "rb");
+
+    char *outbuf = nullptr;
+    size_t outsz = 0;
+
+    FILE * fout = open_memstream(&outbuf, &outsz);
+    if (fout == nullptr) {
+        std::string ferrstr = std::string("console.log('Can not open writable memory stream!')");
+        emscripten_run_script(ferrstr.c_str());
+        return ret;
+    }
+
+    bgcode::core::EResult result = bgcode::convert::from_binary_to_ascii(*fin, *fout, verify);
+    if (result != bgcode::core::EResult::Success) {
+        std::string astr = std::string("console.error('Error when translating gcode: ");
+        astr += translate_result(result);
+        astr += "')";
+        emscripten_run_script(astr.c_str());
+    }
+
+    fclose(fin);
+    fclose(fout);
+
+    ret.reserve(outsz);
+    std::copy(outbuf, outbuf + outsz, std::back_inserter(ret));
+    free(outbuf);
+
+    return ret;
 }
 
 std::string bgcode2ascii_and_verify(std::string in)
 {
     bool verify_checksum = true;
-    return convert(std::move(in), bgcode::convert::from_binary_to_ascii, verify_checksum);
+    return bgcode2ascii_vf(std::move(in), verify_checksum);
 }
 
 std::string bgcode2ascii(std::string in)
 {
     bool verify_checksum = false;
-    return convert(std::move(in), bgcode::convert::from_binary_to_ascii, verify_checksum);
+    return bgcode2ascii_vf(std::move(in), verify_checksum);
 }
 
 EMSCRIPTEN_BINDINGS(module) {
