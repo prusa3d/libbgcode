@@ -22,6 +22,11 @@ cmake_dependent_option(${PROJECT_NAME}_BUILD_COMPONENT_Convert "Include Convert 
 cmake_dependent_option(${PROJECT_NAME}_BUILD_CMD_TOOL "Include bgcode command line tool in the library" ON 
                        "${PROJECT_NAME}_BUILD_COMPONENT_Binarize AND ${PROJECT_NAME}_BUILD_COMPONENT_Convert" OFF)
 
+if (EMSCRIPTEN)
+    cmake_dependent_option(${PROJECT_NAME}_BUILD_WASM "Include bgcode wasm module in the build" ON
+                          "${PROJECT_NAME}_BUILD_COMPONENT_Binarize AND ${PROJECT_NAME}_BUILD_COMPONENT_Convert" OFF)
+endif ()
+
 set(_selected_components "Core")
 set(_selected_libs "${_libname}_core")
 
@@ -31,6 +36,7 @@ set(Convert_DOWNSTREAM_DEPS "")
 if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
     set(heatshrink_VER 0.4)
     set(ZLIB_VER 1.0)
+
     find_package(heatshrink ${heatshrink_VER} REQUIRED)
     find_package(ZLIB ${ZLIB_VER} REQUIRED)
     
@@ -159,6 +165,10 @@ if (${PROJECT_NAME}_BUILD_CMD_TOOL)
     set_target_properties(${_libname}_cmd PROPERTIES OUTPUT_NAME ${_libname})
     target_link_libraries(${_libname}_cmd ${_libname}_convert Boost::nowide)
 endif ()
+
+if (${PROJECT_NAME}_BUILD_WASM)
+    add_subdirectory(${_srcloc}/wasm)
+endif()
 
 if(${PROJECT_NAME}_BUILD_TESTS)
     enable_testing ()
