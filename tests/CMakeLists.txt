@@ -18,6 +18,10 @@ target_include_directories(test_common INTERFACE ${CMAKE_CURRENT_LIST_DIR})
 target_compile_definitions(test_common INTERFACE TEST_DATA_DIR=R"\(${TEST_DATA_DIR}\)" CATCH_CONFIG_FAST_COMPILE)
 target_link_libraries(test_common INTERFACE Catch2::Catch2 Boost::nowide)
 
+if (EMSCRIPTEN)
+    target_link_libraries(test_common INTERFACE nodefs.js noderawfs.js)
+endif()
+
 add_subdirectory(core)
 
 if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
