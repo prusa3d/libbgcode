@@ -171,6 +171,12 @@ jobs:
       with:
         name: test-results
         path: ${{github.workspace}}/build/**/result-junit-wasm.xml
+
+    - uses: actions/upload-artifact@v3  # upload wasm module
+      if: success()
+      with:
+        name: libbgcode-wasm
+        path: ${{github.workspace}}/build/dist/lib/wasm/
       
   build-msvc:
     runs-on: windows-2019
