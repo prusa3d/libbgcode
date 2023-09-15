@@ -19,5 +19,6 @@ install(TARGETS ${_libname}_wasm
 
 install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/${_libname}.wasm
+    ${CMAKE_CURRENT_BINARY_DIR}/${_libname}.html
     DESTINATION lib/wasm  # or wherever you want these files to be installed
 )

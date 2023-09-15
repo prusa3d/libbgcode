@@ -173,6 +173,7 @@ jobs:
         path: ${{github.workspace}}/build/**/result-junit-wasm.xml
 
     - uses: actions/upload-artifact@v3  # upload wasm module
+      name: Saving WebAssembly artifacts
       if: success()
       with:
         name: libbgcode-wasm
