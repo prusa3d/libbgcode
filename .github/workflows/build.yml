@@ -88,6 +88,96 @@ jobs:
       with:
         name: test-results
         path: ${{github.workspace}}/build/**/result-junit-linux.xml
+
+  build-wasm:
+    runs-on: ubuntu-latest
+    container:
+      image: emscripten/emsdk
+      env:
+        LANG: C.utf8
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Hashing dependency CMake files
+      id: dep_cmake_hash
+      run: echo "dep_cmake_hash=${{ hashFiles('./deps/**') }}" >> $GITHUB_OUTPUT
+
+    - name: Create Build Environment
+      shell: bash
+      # Some projects don't allow in-source building, so create a separate build directory
+      # We'll use this as our working directory for all subsequent commands
+      run: |
+        cmake -E make_directory build
+        cmake -E make_directory build/dist
+        cmake -E make_directory deps/build
+        cmake -E make_directory example/build_fp
+        cmake -E make_directory example/build_subd
+
+    - uses: actions/cache@v3
+      name: Getting dependency cache
+      id: cache
+      with:
+        path: deps/build/destdir
+        key: ${{ runner.os }}-${{ matrix.arch }}-emscripten-build-deps-${{ steps.dep_cmake_hash.outputs.dep_cmake_hash }}
+
+    - name: Build dependencies
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      shell: bash
+      working-directory: ${{github.workspace}}/deps/build
+      run: |
+        emcmake cmake .. -DCMAKE_BUILD_TYPE=MinSizeRel
+        cmake --build . 
+
+    - name: Configure CMake
+      # Use a bash shell so we can use the same syntax for environment variable
+      # access regardless of the host operating system
+      shell: bash
+      working-directory:  ${{github.workspace}}/build
+      # Note the current convention is to use the -S and -B options here to specify source 
+      # and build directories, but this is only available with CMake 3.13 and higher.  
+      # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
+      run: emcmake cmake  .. -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_FIND_ROOT_PATH=$(pwd)/../deps/build/destdir/usr/local -DCMAKE_INSTALL_PREFIX=$(pwd)/../build/dist -DCATCH_EXTRA_ARGS="--reporter;junit;--out=result-junit-wasm.xml"
+    
+    - name: Build
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      # Execute the build.  You can specify a specific target with "--target <NAME>"
+      run: cmake --build . --target install
+      
+    - name: Test
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      # Execute tests defined by the CMake configuration.  
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+      run: ctest
+
+    - name: Build example (using find_package)
+      shell: bash
+      working-directory: ${{github.workspace}}/example/build_fp
+      run: |
+        emcmake cmake .. -DCMAKE_FIND_ROOT_PATH="$(pwd)/../../build/dist;$(pwd)/../../deps/build/destdir/usr/local"
+        cmake --build .
+
+    - name: Build example (using add_subdirectory)
+      shell: bash
+      working-directory: ${{github.workspace}}/example/build_subd
+      run: |
+        emcmake cmake .. -DBGCODE_AS_SUBPROJECT=ON -DLibBGCode_BUILD_TESTS=OFF -DCMAKE_FIND_ROOT_PATH=$(pwd)/../../deps/build/destdir/usr/local
+        cmake --build .
+
+    - uses: actions/upload-artifact@v3  # upload test results
+      if: success() || failure()        # run this step even if previous step failed
+      with:
+        name: test-results
+        path: ${{github.workspace}}/build/**/result-junit-wasm.xml
+
+    - uses: actions/upload-artifact@v3  # upload wasm module
+      name: Saving WebAssembly artifacts
+      if: success()
+      with:
+        name: libbgcode-wasm
+        path: ${{github.workspace}}/build/dist/lib/wasm/
       
   build-msvc:
     runs-on: windows-2019

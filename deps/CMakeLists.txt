@@ -17,6 +17,10 @@ if (APPLE)
     )
 endif ()
 
+if (EMSCRIPTEN)
+    set(DEP_CMAKE_OPTS "-DCMAKE_CXX_FLAGS=-fms-extensions")
+endif ()
+
 include(${PROJECT_SOURCE_DIR}/../cmake/modules/AddCMakeProject.cmake)
 
 set(supported_packages Boost heatshrink Catch2 ZLIB)
