@@ -1,3 +1,4 @@
 deps/build
 build
 CMakeLists.txt.user
+pybgcode.egg-info

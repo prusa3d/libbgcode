@@ -20,12 +20,15 @@ include(CMakeDependentOption)
 cmake_dependent_option(${PROJECT_NAME}_BUILD_COMPONENT_Convert "Include Convert component in the library" ON 
                        "${PROJECT_NAME}_BUILD_COMPONENT_Binarize" OFF)
 cmake_dependent_option(${PROJECT_NAME}_BUILD_CMD_TOOL "Include bgcode command line tool in the library" ON 
-                       "${PROJECT_NAME}_BUILD_COMPONENT_Binarize AND ${PROJECT_NAME}_BUILD_COMPONENT_Convert" OFF)
+                       "${PROJECT_NAME}_BUILD_COMPONENT_Convert" OFF)
 
 if (EMSCRIPTEN)
     cmake_dependent_option(${PROJECT_NAME}_BUILD_WASM "Include bgcode wasm module in the build" ON
-                          "${PROJECT_NAME}_BUILD_COMPONENT_Binarize AND ${PROJECT_NAME}_BUILD_COMPONENT_Convert" OFF)
+                          "${PROJECT_NAME}_BUILD_COMPONENT_Convert" OFF)
 endif ()
+
+cmake_dependent_option(${PROJECT_NAME}_BUILD_PYTHON_BINDING "Include bgcode wasm module in the build" OFF
+                       "${PROJECT_NAME}_BUILD_COMPONENT_Convert" OFF)
 
 set(_selected_components "Core")
 set(_selected_libs "${_libname}_core")
@@ -41,6 +44,10 @@ set(namespace "${PROJECT_NAME}::")
 include(GenerateExportHeader)
 
 set(_srcloc src/${PROJECT_NAME})
+
+if (${PROJECT_NAME}_BUILD_PYTHON_BINDING)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif ()
 
 add_subdirectory(${_srcloc}/core)
 
@@ -70,6 +77,11 @@ endif ()
 if (${PROJECT_NAME}_BUILD_WASM)
     add_subdirectory(${_srcloc}/wasm)
 endif()
+
+if (${PROJECT_NAME}_BUILD_PYTHON_BINDING)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    add_subdirectory(${_srcloc}/python)
+endif ()
 
 if(${PROJECT_NAME}_BUILD_TESTS)
     enable_testing ()
