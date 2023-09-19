@@ -1,9 +1,6 @@
-# Get the binary dir of the compiles python module rubustly
-get_target_property(_pybgcode_bindir pybgcode BINARY_DIR)
-
 # Prepare the test files to be available
 configure_file(${TEST_DATA_DIR}/mini_cube_b_ref.gcode ${CMAKE_CURRENT_BINARY_DIR}/mini_cube_b_ref.gcode)
 
 # Define the test for ctest and inject the correct PYTHONPATH env var for its runtime
 add_test(NAME test_pybgcode COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/test_convert.py)
-set_property(TEST test_pybgcode PROPERTY ENVIRONMENT PYTHONPATH=${_pybgcode_bindir})
+set_property(TEST test_pybgcode PROPERTY ENVIRONMENT PYTHONPATH=$<TARGET_FILE_DIR:pybgcode>)

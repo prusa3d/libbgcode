@@ -15,7 +15,6 @@ PLAT_TO_CMAKE = {
     "win-arm64": "ARM64",
 }
 
-
 # A CMakeExtension needs a sourcedir instead of a file list.
 # The name must be the _single_ output extension from the CMake build.
 # If you need multiple extensions, see scikit-build.
@@ -23,7 +22,6 @@ class CMakeExtension(Extension):
     def __init__(self, name: str, sourcedir: str = "") -> None:
         super().__init__(name, sources=[])
         self.sourcedir = os.fspath(Path(sourcedir).resolve())
-
 
 class CMakeBuild(build_ext):
     def build_extension(self, ext: CMakeExtension) -> None:
@@ -47,7 +45,7 @@ class CMakeBuild(build_ext):
         cmake_args = [
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}{os.sep}",
             f"-DLibBGCode_BUILD_PYTHON_BINDING=ON",
-            f"-DCMAKE_PREFIX_PATH={ext.sourcedir}/deps/build/destdir/usr/local",
+            f"-DCMAKE_PREFIX_PATH={ext.sourcedir}/deps/build-python/destdir/usr/local",
             f"-DPYTHON_EXECUTABLE={sys.executable}",
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
         ]
@@ -123,15 +121,18 @@ class CMakeBuild(build_ext):
         subprocess.run(
             ["cmake", "--build", ".", *build_args], cwd=build_temp, check=True
         )
+        subprocess.run(
+            ["ctest", "--verbose"], cwd=build_temp, check=True
+        )
 
 
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
     name="pybgcode",
-    version="0.0.1",
+    version="0.1",
     author="Tomas Meszaros",
-    description="A test project using pybind11 and CMake",
+    description="Prusa Block & Binary G-code reader / writer / converter",
     long_description="",
     ext_modules=[CMakeExtension("pybgcode")],
     cmdclass={"build_ext": CMakeBuild},
