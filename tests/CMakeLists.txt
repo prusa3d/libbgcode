@@ -31,3 +31,7 @@ endif()
 if (${PROJECT_NAME}_BUILD_COMPONENT_Convert)
     add_subdirectory(convert)
 endif ()
+
+if (${PROJECT_NAME}_BUILD_PYTHON_BINDING)
+    add_subdirectory(pybgcode)
+endif()

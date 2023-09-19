@@ -9,13 +9,13 @@ PYBIND11_MODULE(pybgcode, m) {
         Pybind11 example plugin
         -----------------------
 
-        .. currentmodule:: cmake_example
+        .. currentmodule:: pygcode
 
         .. autosummary::
            :toctree: _generate
 
            from_ascii_to_binary
-           subtract
+           from_binary_to_ascii
     )pbdoc";
 
     py::enum_<bgcode::core::EResult>(m, "EResult")
