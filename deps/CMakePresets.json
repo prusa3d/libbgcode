@@ -23,7 +23,7 @@
           "cacheVariables": {
               "LibBGCode_Deps_SELECT_pybind11": {
                 "type": "BOOL",
-                "value": "TRUE"
+                "value": "ON"
               }
           }
         },

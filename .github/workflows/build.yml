@@ -127,7 +127,6 @@ jobs:
       run: |
         cmake -E make_directory build
         cmake -E make_directory build/dist
-        cmake -E make_directory deps/build
         cmake -E make_directory example/build_fp
         cmake -E make_directory example/build_subd
 
@@ -154,7 +153,7 @@ jobs:
       # Note the current convention is to use the -S and -B options here to specify source 
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: emcmake cmake  .. -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_FIND_ROOT_PATH=$(pwd)/../deps/build/destdir/usr/local -DCMAKE_INSTALL_PREFIX=$(pwd)/../build/dist -DCATCH_EXTRA_ARGS="--reporter;junit;--out=result-junit-wasm.xml"
+      run: emcmake cmake  .. -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_FIND_ROOT_PATH=$(pwd)/../deps/build-wasm/destdir/usr/local -DCMAKE_INSTALL_PREFIX=$(pwd)/../build/dist -DCATCH_EXTRA_ARGS="--reporter;junit;--out=result-junit-wasm.xml"
     
     - name: Build
       shell: bash
@@ -173,14 +172,14 @@ jobs:
       shell: bash
       working-directory: ${{github.workspace}}/example/build_fp
       run: |
-        emcmake cmake .. -DCMAKE_FIND_ROOT_PATH="$(pwd)/../../build/dist;$(pwd)/../../deps/build/destdir/usr/local"
+        emcmake cmake .. -DCMAKE_FIND_ROOT_PATH="$(pwd)/../../build/dist;$(pwd)/../../deps/build-wasm/destdir/usr/local"
         cmake --build .
 
     - name: Build example (using add_subdirectory)
       shell: bash
       working-directory: ${{github.workspace}}/example/build_subd
       run: |
-        emcmake cmake .. -DBGCODE_AS_SUBPROJECT=ON -DLibBGCode_BUILD_TESTS=OFF -DCMAKE_FIND_ROOT_PATH=$(pwd)/../../deps/build/destdir/usr/local
+        emcmake cmake .. -DBGCODE_AS_SUBPROJECT=ON -DLibBGCode_BUILD_TESTS=OFF -DCMAKE_FIND_ROOT_PATH=$(pwd)/../../deps/build-wasm/destdir/usr/local
         cmake --build .
 
     - uses: actions/upload-artifact@v3  # upload test results
