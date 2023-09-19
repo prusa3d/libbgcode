@@ -27,7 +27,6 @@ jobs:
       run: |
         cmake -E make_directory ${{github.workspace}}/build
         cmake -E make_directory ${{github.workspace}}/build/dist
-        cmake -E make_directory ${{github.workspace}}/deps/build
         cmake -E make_directory ${{github.workspace}}/example/build_fp
         cmake -E make_directory ${{github.workspace}}/example/build_subd
 
@@ -41,10 +40,10 @@ jobs:
     - name: Build dependencies
       if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       shell: bash
-      working-directory: ${{github.workspace}}/deps/build
+      working-directory: ${{github.workspace}}/deps
       run: |
-        cmake .. 
-        cmake --build . 
+        cmake --preset python-module
+        cmake --build --preset python-module
 
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
@@ -57,7 +56,7 @@ jobs:
       run: > 
         cmake $GITHUB_WORKSPACE
         -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-        -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build/destdir/usr/local
+        -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build-python/destdir/usr/local
         -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/dist
         -DLibBGCode_BUILD_PYTHON_BINDING=ON
         -DCATCH_EXTRA_ARGS="--reporter;junit;--out=result-junit-linux.xml"
@@ -67,6 +66,11 @@ jobs:
       shell: bash
       # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake --build . --config $BUILD_TYPE --target install
+
+    - name: Build Python wheel
+      working-directory: ${{github.workspace}}
+      shell: bash
+      run: python -m build --wheel
       
     - name: Test
       working-directory: ${{github.workspace}}/build
@@ -79,14 +83,14 @@ jobs:
       working-directory: ${{github.workspace}}/example/build_fp
       shell: bash
       run: |
-        cmake .. -DCMAKE_PREFIX_PATH="${{github.workspace}}/build/dist;${{github.workspace}}/deps/build/destdir/usr/local"
+        cmake .. -DCMAKE_PREFIX_PATH="${{github.workspace}}/build/dist;${{github.workspace}}/deps/build-python/destdir/usr/local"
         cmake --build .
 
     - name: Build example (using add_subdirectory)
       working-directory: ${{github.workspace}}/example/build_subd
       shell: bash
       run: |
-        cmake .. -DBGCODE_AS_SUBPROJECT=ON -DLibBGCode_BUILD_TESTS=OFF -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build/destdir/usr/local
+        cmake .. -DBGCODE_AS_SUBPROJECT=ON -DLibBGCode_BUILD_TESTS=OFF -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build-python/destdir/usr/local
         cmake --build .
 
     - uses: actions/upload-artifact@v3  # upload test results
@@ -94,6 +98,13 @@ jobs:
       with:
         name: test-results
         path: ${{github.workspace}}/build/**/result-junit-linux.xml
+    
+    - uses: actions/upload-artifact@v3  # upload python module
+      name: Saving Python artifacts
+      if: success()
+      with:
+        name: libbgcode-python-linux
+        path: ${{github.workspace}}/dist/
 
   build-wasm:
     runs-on: ubuntu-latest
@@ -130,10 +141,10 @@ jobs:
     - name: Build dependencies
       if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       shell: bash
-      working-directory: ${{github.workspace}}/deps/build
+      working-directory: ${{github.workspace}}/deps
       run: |
-        emcmake cmake .. -DCMAKE_BUILD_TYPE=MinSizeRel
-        cmake --build . 
+        emcmake cmake --preset wasm
+        cmake --build --preset wasm
 
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
@@ -184,7 +195,7 @@ jobs:
       with:
         name: libbgcode-wasm
         path: ${{github.workspace}}/build/dist/lib/wasm/
-      
+
   build-msvc:
     runs-on: windows-2019
 
@@ -211,7 +222,6 @@ jobs:
       run: |
         cmake -E make_directory ${{github.workspace}}\build
         cmake -E make_directory ${{github.workspace}}\build\dist
-        cmake -E make_directory ${{github.workspace}}\deps\build
         cmake -E make_directory ${{github.workspace}}\example\build_fp
         cmake -E make_directory ${{github.workspace}}\example\build_subd
 
@@ -224,11 +234,11 @@ jobs:
 
     - name: Build dependencies
       if: ${{ steps.cache.outputs.cache-hit != 'true' }}
-      working-directory: ${{github.workspace}}\deps\build
+      working-directory: ${{github.workspace}}\deps
       run: |
-        cmake .. -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Release
+        cmake --preset python-module -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Release
         cmake --build . 
-        cmake .. -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Debug
+        cmake --preset python-module -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Debug
         cmake --build . 
 
     - name: Configure CMake
@@ -239,7 +249,7 @@ jobs:
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
       run: > 
-        cmake .. -DCMAKE_PREFIX_PATH=${{github.workspace}}\deps\build\destdir\usr\local
+        cmake .. -DCMAKE_PREFIX_PATH=${{github.workspace}}\deps\build-python\destdir\usr\local
         -DCMAKE_INSTALL_PREFIX=${{github.workspace}}\build\dist
         -DLibBGCode_BUILD_PYTHON_BINDING=ON
         -DCATCH_EXTRA_ARGS="--reporter;junit;--out=result-junit-msvc.xml"
@@ -258,13 +268,13 @@ jobs:
     - name: Build example (using find_package)
       working-directory: ${{github.workspace}}\example\build_fp
       run: |
-        cmake .. -DCMAKE_PREFIX_PATH="${{github.workspace}}\build\dist;${{github.workspace}}\deps\build\destdir\usr\local"
+        cmake .. -DCMAKE_PREFIX_PATH="${{github.workspace}}\build\dist;${{github.workspace}}\deps\build-python\destdir\usr\local"
         cmake --build . --config Release
 
     - name: Build example (using add_subdirectory)
       working-directory: ${{github.workspace}}\example\build_subd
       run: |
-        cmake .. -DBGCODE_AS_SUBPROJECT=ON -DLibBGCode_BUILD_TESTS=OFF -DCMAKE_PREFIX_PATH=${{github.workspace}}\deps\build\destdir\usr\local
+        cmake .. -DBGCODE_AS_SUBPROJECT=ON -DLibBGCode_BUILD_TESTS=OFF -DCMAKE_PREFIX_PATH=${{github.workspace}}\deps\build-python\destdir\usr\local
         cmake --build . --config Release
 
     - uses: actions/upload-artifact@v3  # upload test results
@@ -272,6 +282,13 @@ jobs:
       with:
         name: test-results-msvc
         path: ${{github.workspace}}\build\**\result-junit-msvc.xml
+
+    - uses: actions/upload-artifact@v3  # upload python module
+      name: Saving Python artifacts
+      if: success()
+      with:
+        name: libbgcode-python-msvc
+        path: ${{github.workspace}}/dist/
 
   build-mac:
     # The CMake configure and build commands are platform agnostic and should work equally
