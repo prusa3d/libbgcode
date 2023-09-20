@@ -40,6 +40,10 @@
               "CMAKE_FIND_ROOT_PATH": {
                   "type": "PATH",
                   "value": "${sourceDir}/deps/build-python/destdir/usr/local"
+              },
+              "CMAKE_MODULE_PATH": {
+                  "type": "PATH",
+                  "value": "${sourceDir}/deps/build-python/destdir/usr/local/share/cmake/python_cmake_wheel"
               }
             }
         },

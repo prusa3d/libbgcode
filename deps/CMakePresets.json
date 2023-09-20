@@ -21,10 +21,8 @@
           "description": "Python module dependencies",
           "binaryDir": "${sourceDir}/build-python",
           "cacheVariables": {
-              "LibBGCode_Deps_SELECT_pybind11": {
-                "type": "BOOL",
-                "value": "ON"
-              }
+              "LibBGCode_Deps_SELECT_pybind11": true,
+              "LibBGCode_Deps_SELECT_python-cmake-wheel": true
           }
         },
         {

@@ -23,7 +23,7 @@ endif ()
 
 include(${PROJECT_SOURCE_DIR}/../cmake/modules/AddCMakeProject.cmake)
 
-set(supported_packages Boost heatshrink Catch2 ZLIB pybind11)
+set(supported_packages Boost heatshrink Catch2 ZLIB pybind11 python-cmake-wheel)
 
 include(CMakeDependentOption)
 option(${PROJECT_NAME}_SELECT_ALL "Choose all external projects to be built." ON)
