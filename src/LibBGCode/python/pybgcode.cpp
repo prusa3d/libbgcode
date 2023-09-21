@@ -1,5 +1,9 @@
 #include <cstdio>
+#include <cerrno>
+#include <cstring>
 #include <pybind11/pybind11.h>
+
+#include <boost/nowide/cstdio.hpp>
 
 #include "convert/convert.hpp"
 
@@ -94,7 +98,18 @@ PYBIND11_MODULE(pybgcode, m) {
     m.def("get_config", &get_config);
 
     m.def("fopen", [](const char * name, const char *mode) {
-        FILE * fptr = std::fopen(name, mode);
+        FILE * fptr = boost::nowide::fopen(name, mode);
+
+        if (!fptr) {
+#if _MSC_VER
+            static constexpr size_t bufsz = 100;
+            char buf[bufsz];
+            strerror_s(buf, bufsz, errno);
+            throw std::runtime_error(buf);
+#else
+            throw std::runtime_error(std::strerror(errno));
+#endif
+        }
 
         return py::capsule(fptr, "FILE*");
     });

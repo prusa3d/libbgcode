@@ -12,9 +12,11 @@ if (DEFINED PY_BUILD_CMAKE_PACKAGE_VERSION)
     endif()
 endif()
 
+find_package(Boost ${Boost_VER} REQUIRED COMPONENTS nowide)
+
 pybind11_add_module(pybgcode MODULE pybgcode.cpp)
 
-target_link_libraries(pybgcode PRIVATE bgcode_convert)
+target_link_libraries(pybgcode PRIVATE bgcode_convert Boost::nowide)
 
 target_compile_definitions(pybgcode PRIVATE
     MODULE_NAME=pybgcode
