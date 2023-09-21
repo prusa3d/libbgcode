@@ -5,7 +5,7 @@
           "name": "default",
           "displayName": "Default Config",
           "description": "Default build for any desktop OS",
-          "binaryDir": "${sourceDir}/build",
+          "binaryDir": "${sourceDir}/build-default",
           "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Release",
             "DEP_DOWNLOAD_DIR": {
@@ -19,7 +19,7 @@
           "inherits": "default",
           "displayName": "Python module dependencies",
           "description": "Python module dependencies",
-          "binaryDir": "${sourceDir}/build-python",
+          "binaryDir": "${sourceDir}/build-python-module",
           "cacheVariables": {
               "LibBGCode_Deps_SELECT_pybind11": true
           }

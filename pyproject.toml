@@ -31,6 +31,8 @@ exclude = [".gitignore", ".git/", ".github/", "deps/build*", "build*", "CMakeLis
 
 [tool.py-build-cmake.cmake] # How to build the CMake project
 source_path = "."
+build_type = "Release"
+config = ["Release"]
 # build_args = ["-j"]
 options = { "LibBGCode_BUILD_PYTHON_BINDING" = "on", "LibBGCode_BUILD_CMD_TOOL" = "off", "LibBGCode_BUILD_TESTS" = "off", "LibBGCode_BUILD_DEPS" = "on", "LibBGCode_DEPS_PRESET" = "python-module" }
 install_components = ["python_modules"]

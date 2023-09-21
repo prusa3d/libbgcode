@@ -1,4 +1,4 @@
-deps/build
+deps/build*
 deps/.pkg_cache
 build
 CMakeLists.txt.user

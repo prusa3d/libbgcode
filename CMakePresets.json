@@ -21,9 +21,9 @@
           "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Release",
             "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/dist",
-            "CMAKE_FIND_ROOT_PATH": {
+            "CMAKE_PREFIX_PATH": {
                 "type": "PATH",
-                "value": "${sourceDir}/deps/build/destdir/usr/local"
+                "value": "${sourceDir}/deps/build-default/destdir/usr/local"
             }
           }
         },
@@ -37,13 +37,9 @@
               "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/dist",
               "LibBGCode_BUILD_CMD_TOOL": false,
               "LibBGCode_BUILD_PYTHON_BINDING": true,
-              "CMAKE_FIND_ROOT_PATH": {
+              "CMAKE_PREFIX_PATH": {
                   "type": "PATH",
-                  "value": "${sourceDir}/deps/build-python/destdir/usr/local"
-              },
-              "CMAKE_MODULE_PATH": {
-                  "type": "PATH",
-                  "value": "${sourceDir}/deps/build-python/destdir/usr/local/share/cmake/python_cmake_wheel"
+                  "value": "${sourceDir}/deps/build-python-module/destdir/usr/local"
               }
             }
         },
