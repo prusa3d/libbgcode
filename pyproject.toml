@@ -1,7 +1,3 @@
-[build-system]
-requires = ["py-build-cmake~=0.1.8"]
-build-backend = "py_build_cmake.build"
-
 [project]
 name = "pybgcode"
 version = "0.1"
@@ -22,6 +18,10 @@ requires-python = ">=3.7"
 "Homepage" = "https://github.com/prusa3d/libbgcode"
 "Bug Tracker" = "https://github.com/prusa3d/libbgcode/issues"
 
+[build-system]
+requires = ["py-build-cmake~=0.1.8"]
+build-backend = "py_build_cmake.build"
+
 [tool.py-build-cmake.module] # Where to find the Python module to package
 directory = "src/LibBGCode/python/"
 
@@ -30,13 +30,11 @@ include = [ "src/*" , "deps/*", "cmake/*", "tests/*", "CMakeLists.txt", "CMakePr
 exclude = [".gitignore", ".git/", ".github/", "deps/build*", "build*", "CMakeLists.txt.user", "*.bak"]
 
 [tool.py-build-cmake.cmake] # How to build the CMake project
-build_type = "RelWithDebInfo"
 source_path = "."
 # build_args = ["-j"]
-options = { "CMAKE_FIND_ROOT_PATH" = "/home/quarky/Workspace/prusa3d/LibBGCode/libbgcode-src-master/deps/build-python/destdir/usr/local", "LibBGCode_BUILD_PYTHON_BINDING" = "on" }
+options = { "LibBGCode_BUILD_PYTHON_BINDING" = "on", "LibBGCode_BUILD_CMD_TOOL" = "off" }
+install_components = ["python_modules"]
 # preset = "python-module"
 # build_presets = ["python-module"]
 # build_path = "build"
 
-# [tool.py-build-cmake.linux.cmake]
-# build_path = "build"

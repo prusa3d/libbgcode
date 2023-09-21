@@ -1,0 +1,3 @@
+[cmake]
+options = {"CMAKE_PREFIX_PATH" = "/home/quarky/Workspace/prusa3d/libbingcode/libbgcode-src-master/deps/build-python/destdir/usr/local" }
+

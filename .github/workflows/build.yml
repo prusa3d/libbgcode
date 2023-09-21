@@ -70,7 +70,10 @@ jobs:
     - name: Build Python wheel
       working-directory: ${{github.workspace}}
       shell: bash
-      run: python -m build --wheel
+      run: |
+        python -m pip install build
+        echo "[cmake]\noptions = {\"CMAKE_PREFIX_PATH\" = \"$(pwd)/deps/build-python/destdir/usr/local\" }\n" > py-build-cmake.local.toml
+        python -m build --wheel
       
     - name: Test
       working-directory: ${{github.workspace}}/build

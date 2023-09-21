@@ -74,12 +74,10 @@
         },
         {
             "name": "wasm",
-            "inherits": "default",
             "configurePreset": "wasm"
         },
         {
           "name": "python-module",
-          "inherits": "default",
           "configurePreset": "python-module"
         }
     ]
