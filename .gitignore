@@ -5,3 +5,4 @@ CMakeLists.txt.user
 pybgcode.egg-info
 dist/
 Testing
+.py-build*

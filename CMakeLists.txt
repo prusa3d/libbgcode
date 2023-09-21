@@ -12,6 +12,15 @@ string(REPLACE "lib" "" _libname ${_libname})
 option(${PROJECT_NAME}_BUILD_TESTS "Build unit tests" ON)
 option(${PROJECT_NAME}_BUILD_COMPONENT_Binarize "Include Binarize component in the library" ON)
 
+# Dependency build management
+option(${PROJECT_NAME}_BUILD_DEPS "Build dependencies before the project" OFF)
+option(${PROJECT_NAME}_DEPS_OUTPUT_QUIET "Don't print build output for dependencies" ON)
+set(${PROJECT_NAME}_DEPS_PRESET "default" CACHE STRING "Preset of the dependencies when ${PROJECT_NAME}_BUILD_DEPS is ON")
+
+if (${PROJECT_NAME}_BUILD_DEPS)
+    include(deps/autobuild.cmake)
+endif ()
+
 if (NOT CMAKE_DEBUG_POSTFIX)
     set(CMAKE_DEBUG_POSTFIX "d")
 endif ()
