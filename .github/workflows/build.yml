@@ -25,6 +25,8 @@ jobs:
       # Some projects don't allow in-source building, so create a separate build directory
       # We'll use this as our working directory for all subsequent commands
       run: |
+        python -m pip install build
+        python -m pip install py-build-cmake
         cmake -E make_directory ${{github.workspace}}/build
         cmake -E make_directory ${{github.workspace}}/build/dist
         cmake -E make_directory ${{github.workspace}}/example/build_fp
@@ -34,16 +36,14 @@ jobs:
       name: Getting dependency cache
       id: cache
       with:
-        path: ${{github.workspace}}/deps/build/destdir
+        path: ${{github.workspace}}/deps/build-python-module/destdir
         key: ${{ runner.os }}-${{ matrix.arch }}-build-deps-${{ steps.dep_cmake_hash.outputs.dep_cmake_hash }}
 
     - name: Build dependencies
       if: ${{ steps.cache.outputs.cache-hit != 'true' }}
       shell: bash
       working-directory: ${{github.workspace}}/deps
-      run: |
-        cmake --preset python-module
-        cmake --build --preset python-module
+      run: cmake -D_DEPS_PRESET=python-module -P autobuild.cmake
 
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
@@ -56,7 +56,7 @@ jobs:
       run: > 
         cmake $GITHUB_WORKSPACE
         -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-        -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build-python/destdir/usr/local
+        -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build-python-module/destdir/usr/local
         -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/dist
         -DLibBGCode_BUILD_PYTHON_BINDING=ON
         -DCATCH_EXTRA_ARGS="--reporter;junit;--out=result-junit-linux.xml"
@@ -64,16 +64,7 @@ jobs:
     - name: Build
       working-directory: ${{github.workspace}}/build
       shell: bash
-      # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake --build . --config $BUILD_TYPE --target install
-
-    - name: Build Python wheel
-      working-directory: ${{github.workspace}}
-      shell: bash
-      run: |
-        python -m pip install build
-        echo "[cmake]\noptions = {\"CMAKE_PREFIX_PATH\" = \"$(pwd)/deps/build-python/destdir/usr/local\" }\n" > py-build-cmake.local.toml
-        python -m build --wheel
       
     - name: Test
       working-directory: ${{github.workspace}}/build
@@ -86,15 +77,20 @@ jobs:
       working-directory: ${{github.workspace}}/example/build_fp
       shell: bash
       run: |
-        cmake .. -DCMAKE_PREFIX_PATH="${{github.workspace}}/build/dist;${{github.workspace}}/deps/build-python/destdir/usr/local"
+        cmake .. -DCMAKE_PREFIX_PATH="${{github.workspace}}/build/dist;${{github.workspace}}/deps/build-python-module/destdir/usr/local"
         cmake --build .
 
     - name: Build example (using add_subdirectory)
       working-directory: ${{github.workspace}}/example/build_subd
       shell: bash
       run: |
-        cmake .. -DBGCODE_AS_SUBPROJECT=ON -DLibBGCode_BUILD_TESTS=OFF -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build-python/destdir/usr/local
+        cmake .. -DBGCODE_AS_SUBPROJECT=ON -DLibBGCode_BUILD_TESTS=OFF -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build-python-module/destdir/usr/local
         cmake --build .
+
+    - name: Build Python wheel
+      working-directory: ${{github.workspace}}
+      shell: bash
+      run: python -m build --wheel
 
     - uses: actions/upload-artifact@v3  # upload test results
       if: success() || failure()        # run this step even if previous step failed
