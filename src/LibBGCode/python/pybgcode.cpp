@@ -24,6 +24,15 @@ bgcode::binarize::BinarizerConfig get_config()
     return config;
 }
 
+struct FileDestructor {
+    void operator()(FILE *fp)
+    {
+        std::fclose(fp);
+    }
+};
+
+using FileUPtr = std::unique_ptr<FILE, FileDestructor>;
+
 PYBIND11_MODULE(pybgcode, m) {
     m.doc() = R"pbdoc(
         Pybind11 example plugin
@@ -95,6 +104,8 @@ PYBIND11_MODULE(pybgcode, m) {
         .def_readwrite("metadata_encoding", &bgcode::binarize::BinarizerConfig::metadata_encoding)
         .def_readwrite("checksum", &bgcode::binarize::BinarizerConfig::checksum);
 
+    py::class_<FILE, FileUPtr> file_io_binding(m, "FILE");
+
     m.def("get_config", &get_config);
 
     m.def("fopen", [](const char * name, const char *mode) {
@@ -111,21 +122,19 @@ PYBIND11_MODULE(pybgcode, m) {
 #endif
         }
 
-        return py::capsule(fptr, "FILE*");
+        return FileUPtr(fptr);
     });
 
-    m.def("fclose", [](py::capsule fileptr) { std::fclose(fileptr.get_pointer<FILE>()); });
-
-    m.def("from_ascii_to_binary", [](py::capsule infile, py::capsule outfile, const bgcode::binarize::BinarizerConfig &config) {
-            return bgcode::convert::from_ascii_to_binary(*infile.get_pointer<FILE>(), *outfile.get_pointer<FILE>(), config); },
+     m.def("from_ascii_to_binary", [](FILE *infile, FILE *outfile, const bgcode::binarize::BinarizerConfig &config) {
+            return bgcode::convert::from_ascii_to_binary(*infile, *outfile, config);
+        },
         R"pbdoc(Convert ascii gcode to binary format)pbdoc"
     );
 
-    m.def("from_binary_to_ascii", [] (py::capsule infile, py::capsule outfile, bool verify_checksum) {
-            return bgcode::convert::from_binary_to_ascii(*infile.get_pointer<FILE>(), *outfile.get_pointer<FILE>(), verify_checksum);
-        } , R"pbdoc(
-        Convert binary gcode to textual format
-    )pbdoc");
+    m.def("from_binary_to_ascii", [] (FILE *infile, FILE *outfile, bool verify_checksum) {
+            return bgcode::convert::from_binary_to_ascii(*infile, *outfile, verify_checksum);
+        },
+    R"pbdoc(Convert binary gcode to textual format)pbdoc");
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;

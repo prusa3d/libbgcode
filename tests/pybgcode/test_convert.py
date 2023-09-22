@@ -15,8 +15,5 @@ def test_main():
 
     assert(res == pybgcode.EResult.Success)
 
-    pybgcode.fclose(in_f)
-    pybgcode.fclose(out_f)
-
 if __name__ == '__main__':
     test_main()
