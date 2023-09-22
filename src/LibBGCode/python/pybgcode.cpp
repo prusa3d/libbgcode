@@ -24,14 +24,21 @@ bgcode::binarize::BinarizerConfig get_config()
     return config;
 }
 
-struct FileDestructor {
-    void operator()(FILE *fp)
-    {
-        std::fclose(fp);
-    }
-};
+struct FILEWrapper {
+    FILE *fptr = nullptr;
 
-using FileUPtr = std::unique_ptr<FILE, FileDestructor>;
+    explicit FILEWrapper (FILE *f = nullptr) : fptr{f} {}
+
+    void close()
+    {
+        if (fptr) {
+            fclose(fptr);
+            fptr = nullptr;
+        }
+    }
+
+    ~FILEWrapper() { close(); }
+};
 
 PYBIND11_MODULE(pybgcode, m) {
     m.doc() = R"pbdoc(
@@ -104,7 +111,7 @@ PYBIND11_MODULE(pybgcode, m) {
         .def_readwrite("metadata_encoding", &bgcode::binarize::BinarizerConfig::metadata_encoding)
         .def_readwrite("checksum", &bgcode::binarize::BinarizerConfig::checksum);
 
-    py::class_<FILE, FileUPtr> file_io_binding(m, "FILE");
+    py::class_<FILEWrapper> file_io_binding(m, "FILEWrapper");
 
     m.def("get_config", &get_config);
 
@@ -122,17 +129,20 @@ PYBIND11_MODULE(pybgcode, m) {
 #endif
         }
 
-        return FileUPtr(fptr);
+        return std::make_unique<FILEWrapper>(fptr);
     });
 
-     m.def("from_ascii_to_binary", [](FILE *infile, FILE *outfile, const bgcode::binarize::BinarizerConfig &config) {
-            return bgcode::convert::from_ascii_to_binary(*infile, *outfile, config);
+    m.def("fclose", [](FILEWrapper &f) { f.close(); }, R"pbdoc(Close a previously opened file)pbdoc");
+    m.def("is_open", [](const FILEWrapper &f) { return f.fptr != nullptr; }, R"pbdoc(Check if file is open)pbdoc");
+
+    m.def("from_ascii_to_binary", [](FILEWrapper &infile, FILEWrapper &outfile, const bgcode::binarize::BinarizerConfig &config) {
+            return bgcode::convert::from_ascii_to_binary(*infile.fptr, *outfile.fptr, config);
         },
         R"pbdoc(Convert ascii gcode to binary format)pbdoc"
     );
 
-    m.def("from_binary_to_ascii", [] (FILE *infile, FILE *outfile, bool verify_checksum) {
-            return bgcode::convert::from_binary_to_ascii(*infile, *outfile, verify_checksum);
+    m.def("from_binary_to_ascii", [] (FILEWrapper &infile, FILEWrapper &outfile, bool verify_checksum = true) {
+            return bgcode::convert::from_binary_to_ascii(*infile.fptr, *outfile.fptr, verify_checksum);
         },
     R"pbdoc(Convert binary gcode to textual format)pbdoc");
 
