@@ -133,7 +133,7 @@ jobs:
       name: Getting dependency cache
       id: cache
       with:
-        path: deps/build/destdir
+        path: deps/build-wasm/destdir
         key: ${{ runner.os }}-${{ matrix.arch }}-emscripten-build-deps-${{ steps.dep_cmake_hash.outputs.dep_cmake_hash }}
 
     - name: Build dependencies
@@ -325,7 +325,7 @@ jobs:
       name: Getting dependency cache
       id: cache
       with:
-        path: ${{github.workspace}}/deps/build/destdir
+        path: ${{github.workspace}}/deps/build-python-module/destdir
         key: ${{ runner.os }}-${{ matrix.arch }}-build-deps-${{ steps.dep_cmake_hash.outputs.dep_cmake_hash }}
 
     - name: Build dependencies

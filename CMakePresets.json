@@ -65,15 +65,18 @@
     "buildPresets": [
         {
             "name": "core",
-            "configurePreset": "core"
+            "configurePreset": "core",
+            "configuration": "MinSizeRel"
         },
         {
             "name": "default",
-            "configurePreset": "default"
+            "configurePreset": "default",
+            "configuration": "Release"
         },
         {
             "name": "wasm",
-            "configurePreset": "wasm"
+            "configurePreset": "wasm",
+            "configuration": "MinSizeRel"
         },
         {
           "name": "python-module",
