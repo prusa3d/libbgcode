@@ -5,7 +5,7 @@
           "name": "core",
           "displayName": "Core",
           "description": "Core build for embedded systems",
-          "binaryDir": "${sourceDir}/build",
+          "binaryDir": "${sourceDir}/build-core",
           "cacheVariables": {
             "CMAKE_BUILD_TYPE": "MinSizeRel",
             "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/dist",
@@ -17,10 +17,11 @@
           "name": "default",
           "displayName": "Default",
           "description": "Default build for any desktop OS",
-          "binaryDir": "${sourceDir}/build",
+          "binaryDir": "${sourceDir}/build-default",
           "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Release",
             "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/dist",
+            "LibBGCode_DEPS_PRESET": "default",
             "CMAKE_PREFIX_PATH": {
                 "type": "PATH",
                 "value": "${sourceDir}/deps/build-default/destdir/usr/local"
@@ -31,12 +32,13 @@
             "name": "python-module",
             "displayName": "Python module",
             "description": "Default build for any desktop OS with Python bindings",
-            "binaryDir": "${sourceDir}/build",
+            "binaryDir": "${sourceDir}/build-python-module",
             "cacheVariables": {
               "CMAKE_BUILD_TYPE": "Release",
               "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/dist",
               "LibBGCode_BUILD_CMD_TOOL": false,
               "LibBGCode_BUILD_PYTHON_BINDING": true,
+              "LibBGCode_DEPS_PRESET": "python-module",
               "CMAKE_PREFIX_PATH": {
                   "type": "PATH",
                   "value": "${sourceDir}/deps/build-python-module/destdir/usr/local"
@@ -47,11 +49,12 @@
             "name": "wasm",
             "displayName": "WebAssembly module",
             "description": "WebAssembly build which only works with emscripten compiler",
-            "binaryDir": "${sourceDir}/build",
+            "binaryDir": "${sourceDir}/build-wasm",
             "cacheVariables": {
               "CMAKE_BUILD_TYPE": "MinSizeRel",
               "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/dist",
               "LibBGCode_BUILD_CMD_TOOL": false,
+              "LibBGCode_DEPS_PRESET": "wasm",
               "CMAKE_FIND_ROOT_PATH": {
                   "type": "PATH",
                   "value": "${sourceDir}/deps/build-wasm/destdir/usr/local"

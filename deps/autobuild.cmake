@@ -14,8 +14,22 @@ if (CMAKE_GENERATOR)
     set (_gen_arg "-G${CMAKE_GENERATOR}")
 endif ()
 
+set(_build_args "")
+
+if (CMAKE_C_COMPILER)
+    list(APPEND _build_args "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}")
+endif ()
+
+if (CMAKE_CXX_COMPILER)
+    list(APPEND _build_args "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
+endif ()
+
+if (CMAKE_TOOLCHAIN_FILE)
+    list(APPEND _build_args "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
+endif ()
+
 execute_process(
-    COMMAND ${CMAKE_COMMAND} --preset "${${PROJECT_NAME}_DEPS_PRESET}" ${_gen_arg} -B build-${${PROJECT_NAME}_DEPS_PRESET}
+    COMMAND ${CMAKE_COMMAND} --preset ${${PROJECT_NAME}_DEPS_PRESET} "${_gen_arg}" -B build-${${PROJECT_NAME}_DEPS_PRESET} ${_build_args}
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
     ${_output_quiet}
     ERROR_VARIABLE _deps_configure_output
