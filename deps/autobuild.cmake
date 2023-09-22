@@ -28,8 +28,15 @@ if (CMAKE_TOOLCHAIN_FILE)
     list(APPEND _build_args "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 endif ()
 
+set(_build_dir "${CMAKE_CURRENT_LIST_DIR}/build-${${PROJECT_NAME}_DEPS_PRESET}")
+if (${PROJECT_NAME}_DEPS_BUILD_DIR)
+    set(_build_dir "${${PROJECT_NAME}_DEPS_BUILD_DIR}")
+endif ()
+
+message(STATUS "build dir = ${_build_dir}")
+
 execute_process(
-    COMMAND ${CMAKE_COMMAND} --preset ${${PROJECT_NAME}_DEPS_PRESET} "${_gen_arg}" -B build-${${PROJECT_NAME}_DEPS_PRESET} ${_build_args}
+    COMMAND ${CMAKE_COMMAND} --preset ${${PROJECT_NAME}_DEPS_PRESET} "${_gen_arg}" -B ${_build_dir} ${_build_args}
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
     ${_output_quiet}
     ERROR_VARIABLE _deps_configure_output
@@ -41,7 +48,7 @@ if (NOT _deps_configure_result EQUAL 0)
 else ()
     execute_process(
         COMMAND ${CMAKE_COMMAND} --build .
-        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/build-${${PROJECT_NAME}_DEPS_PRESET}
+        WORKING_DIRECTORY ${_build_dir}
         ${_output_quiet}
         ERROR_VARIABLE _deps_build_output
         RESULT_VARIABLE _deps_build_result
@@ -52,7 +59,7 @@ else ()
 endif ()
 
 if (${PROJECT_NAME}_DEPS_PRESET STREQUAL "wasm")
-    list(APPEND CMAKE_FIND_ROOT_PATH ${CMAKE_CURRENT_LIST_DIR}/build-${${PROJECT_NAME}_DEPS_PRESET}/destdir/usr/local)
+    list(APPEND CMAKE_FIND_ROOT_PATH ${_build_dir}/destdir/usr/local)
 else ()
-    list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_LIST_DIR}/build-${${PROJECT_NAME}_DEPS_PRESET}/destdir/usr/local)
+    list(APPEND CMAKE_PREFIX_PATH ${_build_dir}/destdir/usr/local)
 endif ()

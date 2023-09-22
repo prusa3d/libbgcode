@@ -34,7 +34,7 @@ source_path = "."
 build_type = "Release"
 config = ["Release"]
 # build_args = ["-j"]
-options = { "LibBGCode_BUILD_PYTHON_BINDING" = "on", "LibBGCode_BUILD_CMD_TOOL" = "off", "LibBGCode_BUILD_TESTS" = "off", "LibBGCode_BUILD_DEPS" = "on", "LibBGCode_DEPS_PRESET" = "python-module" }
+options = { "LibBGCode_BUILD_PYTHON_BINDING" = "on", "LibBGCode_BUILD_CMD_TOOL" = "off", "LibBGCode_BUILD_TESTS" = "off", "LibBGCode_BUILD_DEPS" = "on", "LibBGCode_DEPS_PRESET" = "python-module", "LibBGCode_DEPS_BUILD_DIR" = "deps/build-deps-python-wheel" }
 install_components = ["python_modules"]
 # preset = "python-module"
 # build_presets = ["python-module"]

@@ -42,7 +42,7 @@ struct FILEWrapper {
 
 PYBIND11_MODULE(pybgcode, m) {
     m.doc() = R"pbdoc(
-        Pybind11 example plugin
+        Python binding of the libbgcode conversion functions
         -----------------------
 
         .. currentmodule:: pygcode
@@ -50,9 +50,35 @@ PYBIND11_MODULE(pybgcode, m) {
         .. autosummary::
            :toctree: _generate
 
+           open
+           close
+           is_open
+           get_config
            from_ascii_to_binary
            from_binary_to_ascii
     )pbdoc";
+
+    py::class_<FILEWrapper> file_io_binding(m, "FILEWrapper");
+
+    m.def("open", [](const char * name, const char *mode) {
+        FILE * fptr = boost::nowide::fopen(name, mode);
+
+        if (!fptr) {
+#if _MSC_VER
+            static constexpr size_t bufsz = 100;
+            char buf[bufsz];
+            strerror_s(buf, bufsz, errno);
+            throw std::runtime_error(buf);
+#else
+                throw std::runtime_error(std::strerror(errno));
+#endif
+        }
+
+        return std::make_unique<FILEWrapper>(fptr);
+    });
+
+    m.def("close", [](FILEWrapper &f) { f.close(); }, R"pbdoc(Close a previously opened file)pbdoc");
+    m.def("is_open", [](const FILEWrapper &f) { return f.fptr != nullptr; }, R"pbdoc(Check if file is open)pbdoc");
 
     py::enum_<bgcode::core::EResult>(m, "EResult")
         .value("Success", bgcode::core::EResult::Success)
@@ -111,29 +137,8 @@ PYBIND11_MODULE(pybgcode, m) {
         .def_readwrite("metadata_encoding", &bgcode::binarize::BinarizerConfig::metadata_encoding)
         .def_readwrite("checksum", &bgcode::binarize::BinarizerConfig::checksum);
 
-    py::class_<FILEWrapper> file_io_binding(m, "FILEWrapper");
 
-    m.def("get_config", &get_config);
-
-    m.def("fopen", [](const char * name, const char *mode) {
-        FILE * fptr = boost::nowide::fopen(name, mode);
-
-        if (!fptr) {
-#if _MSC_VER
-            static constexpr size_t bufsz = 100;
-            char buf[bufsz];
-            strerror_s(buf, bufsz, errno);
-            throw std::runtime_error(buf);
-#else
-            throw std::runtime_error(std::strerror(errno));
-#endif
-        }
-
-        return std::make_unique<FILEWrapper>(fptr);
-    });
-
-    m.def("fclose", [](FILEWrapper &f) { f.close(); }, R"pbdoc(Close a previously opened file)pbdoc");
-    m.def("is_open", [](const FILEWrapper &f) { return f.fptr != nullptr; }, R"pbdoc(Check if file is open)pbdoc");
+    m.def("get_config", &get_config,  R"pbdoc(Create a default configuration for ascii to binary gcode conversion)pbdoc");
 
     m.def("from_ascii_to_binary", [](FILEWrapper &infile, FILEWrapper &outfile, const bgcode::binarize::BinarizerConfig &config) {
             return bgcode::convert::from_ascii_to_binary(*infile.fptr, *outfile.fptr, config);
