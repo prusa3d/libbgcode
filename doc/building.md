@@ -1,7 +1,6 @@
 _**Contents**_
 
   * [Quick guide using presets](#quick-guide-using-presets)
-  * [Building on Mac OS X](#building-on-mac-os-x)
   * [Building on Windows](#building-on-windows)
   
 # Quick guide using presets
