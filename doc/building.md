@@ -4,13 +4,33 @@ _**Contents**_
   * [Building on Mac OS X](#building-on-mac-os-x)
   * [Building on Windows](#building-on-windows)
   
-# Building on Linux
+# Quick guide using presets
 
-On Linux, ...
+To build the library with the least possible effort use following commands:
 
-# Building on Mac OS X
+```bash
+cmake --preset default -DLibBGCode_BUILD_DEPS=ON
+cmake --build --preset default
+```
 
-On Mac OS X, ...
+The library can also be installed with modifying the previous commands:
+
+```bash
+cmake --preset default -DLibBGCode_BUILD_DEPS=ON -DCMAKE_INSTALL_PREFIX=<install-dir>
+cmake --build --preset default --target install
+```
+
+where the <install-dir> is an arbitrary install folder.
+
+# Building the Python bindings
+
+The library ships with a Python language binding which can be built in the standard way using the following command:
+
+```bash
+python -m pip install ./
+```
+
+run inside the checked out source directory.
 
 # Building on Windows
 
