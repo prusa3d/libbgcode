@@ -1,12 +1,12 @@
 _**Contents**_
 
-  * [Building on Linux](#building-on-linux)
+  * [Quick guide using presets](#quick-guide-using-presets)
   * [Building on Mac OS X](#building-on-mac-os-x)
   * [Building on Windows](#building-on-windows)
   
 # Quick guide using presets
 
-To build the library with the least possible effort use following commands:
+To build the library quickly on any platform with the least possible effort use following commands inside the checked out source directory:
 
 ```bash
 cmake --preset default -DLibBGCode_BUILD_DEPS=ON
@@ -20,7 +20,7 @@ cmake --preset default -DLibBGCode_BUILD_DEPS=ON -DCMAKE_INSTALL_PREFIX=<install
 cmake --build --preset default --target install
 ```
 
-where the <install-dir> is an arbitrary install folder.
+where  `<install-dir>` is an arbitrary install folder.
 
 # Building the Python bindings
 
