@@ -5,7 +5,7 @@ def test_main():
     assert(pybgcode.__version__ == "0.1")
 
     in_f  = pybgcode.open("test.gcode", "r");
-    out_f = pybgcode.open("test.bgcode", "w");
+    out_f = pybgcode.open("test.bgcode", "wb");
 
     assert(in_f)
     assert(out_f)
@@ -22,12 +22,12 @@ def test_main():
     pybgcode.close(out_f)
     pybgcode.close(in_f)
 
-    in_f = pybgcode.open("test.bgcode", "r");
+    in_f = pybgcode.open("test.bgcode", "rb");
     out_f = pybgcode.open("test_reverse.gcode", "w");
 
     res = pybgcode.from_binary_to_ascii(in_f, out_f, True)
     assert(res == pybgcode.EResult.Success)
-
+    
     pybgcode.close(out_f)
 
     assert(filecmp.cmp("test.gcode", "test_reverse.gcode", shallow=False))

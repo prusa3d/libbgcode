@@ -1,6 +1,6 @@
 deps/build*
 deps/.pkg_cache
-build
+build*
 CMakeLists.txt.user
 pybgcode.egg-info
 dist/
