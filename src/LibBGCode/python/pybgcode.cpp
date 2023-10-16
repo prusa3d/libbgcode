@@ -108,6 +108,9 @@ PYBIND11_MODULE(pybgcode, m) {
         .value("InvalidSequenceOfBlocks", bgcode::core::EResult::InvalidSequenceOfBlocks)
         .value("InvalidBuffer", bgcode::core::EResult::InvalidBuffer)
         .value("AlreadyBinarized", bgcode::core::EResult::AlreadyBinarized)
+        .value("MissingPrinterMetadata", bgcode::core::EResult::MissingPrinterMetadata)
+        .value("MissingPrintMetadata", bgcode::core::EResult::MissingPrintMetadata)
+        .value("MissingSlicerMetadat", bgcode::core::EResult::MissingSlicerMetadata)
         ;
 
     py::enum_<bgcode::core::ECompressionType>(m, "BGCode_CompressionType")
@@ -124,6 +127,17 @@ PYBIND11_MODULE(pybgcode, m) {
     py::enum_<bgcode::core::EChecksumType>(m, "BGCode_ChecksumType")
         .value("none", bgcode::core::EChecksumType::None)
         .value("CRC32", bgcode::core::EChecksumType::CRC32);
+    py::enum_<bgcode::core::EBlockType>(m, "BGCode_EBlockType")
+        .value("FileMetadata", bgcode::core::EBlockType::FileMetadata)
+        .value("GCode", bgcode::core::EBlockType::GCode)
+        .value("SlicerMetadata,", bgcode::core::EBlockType::SlicerMetadata)
+        .value("PrinterMetadata", bgcode::core::EBlockType::PrinterMetadata)
+        .value("PrintMetadata", bgcode::core::EBlockType::PrintMetadata)
+        .value("Thumbnail", bgcode::core::EBlockType::Thumbnail);
+    py::enum_<bgcode::core::EThumbnailFormat>(m, "BGCode_ThumbnailFormat")
+        .value("PNG", bgcode::core::EThumbnailFormat::PNG)
+        .value("JPG", bgcode::core::EThumbnailFormat::JPG)
+        .value("QOI", bgcode::core::EThumbnailFormat::QOI);
 
     py::class_<bgcode::binarize::BinarizerConfig::Compression>(m, "BGCode_BinarizerCompression")
         .def_readwrite("file_metadata", &bgcode::binarize::BinarizerConfig::Compression::file_metadata)
@@ -137,6 +151,17 @@ PYBIND11_MODULE(pybgcode, m) {
         .def_readwrite("metadata_encoding", &bgcode::binarize::BinarizerConfig::metadata_encoding)
         .def_readwrite("checksum", &bgcode::binarize::BinarizerConfig::checksum);
 
+    py::class_<bgcode::core::Checksum>(m, "Checksum")
+        .def(py::init<bgcode::core::EChecksumType>())
+        .def("get_type", &bgcode::core::Checksum::get_type)
+        .def("append", static_cast<void (bgcode::core::Checksum::*)(const std::vector<uint8_t> &)> (&bgcode::core::Checksum::append))
+        .def("matches", &bgcode::core::Checksum::matches)
+        .def("read", [](bgcode::core::Checksum &self, FILEWrapper &file) {
+            self.read(*file.fptr);
+        })
+        .def("write", [](bgcode::core::Checksum &self, FILEWrapper &file) {
+            self.write(*file.fptr);
+        });
 
     m.def("get_config", &get_config,  R"pbdoc(Create a default configuration for ascii to binary gcode conversion)pbdoc");
 
