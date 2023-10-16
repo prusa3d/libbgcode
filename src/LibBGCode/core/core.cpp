@@ -137,7 +137,7 @@ EResult Checksum::read(FILE& file)
 
 EResult FileHeader::write(FILE& file) const
 {
-    if (magic != *(uint32_t*)(MAGIC.data()))
+    if (magic != MAGIC)
         return EResult::InvalidMagicNumber;
     if (checksum_type >= checksum_types_count())
         return EResult::InvalidChecksumType;
@@ -156,7 +156,7 @@ EResult FileHeader::read(FILE& file, const uint32_t* const max_version)
 {
     if (!read_from_file(file, (void*)&magic, sizeof(magic)))
         return EResult::ReadError;
-    if (magic != *(uint32_t*)(MAGIC.data()))
+    if (magic != MAGIC)
         return EResult::InvalidMagicNumber;
 
     if (!read_from_file(file, (void*)&version, sizeof(version)))
@@ -307,10 +307,13 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
     const size_t rsize = fread((void*)magic.data(), 1, magic.size(), &file);
     if (ferror(&file) && rsize != magic.size())
         return EResult::ReadError;
-    else if (magic != MAGIC) {
-        // restore file position
-        fseek(&file, curr_pos, SEEK_SET);
-        return EResult::InvalidMagicNumber;
+    else {
+        const uint32_t magic_value = magic[0] << 0 | magic[1] << 8 | magic[2] << 16 | magic[3] << 24;
+        if (magic_value != MAGIC) {
+            // restore file position
+            fseek(&file, curr_pos, SEEK_SET);
+            return EResult::InvalidMagicNumber;
+        }
     }
 
     // check contents

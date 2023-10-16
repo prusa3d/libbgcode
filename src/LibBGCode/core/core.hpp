@@ -12,7 +12,8 @@
 
 namespace bgcode { namespace core {
 
-static constexpr const std::array<uint8_t, 4> MAGIC{ 'G', 'C', 'D', 'E' };
+static constexpr const uint32_t MAGIC{ 1162101575 }; // "GCDE"
+
 // Library version
 static constexpr const uint32_t VERSION = 1;
 // Max size of checksum buffer data, in bytes
@@ -128,7 +129,7 @@ private:
 
 struct FileHeader
 {
-    uint32_t magic{ *(uint32_t*)(MAGIC.data()) };
+    uint32_t magic{ MAGIC };
     uint32_t version{ VERSION };
     uint16_t checksum_type{ (uint16_t)EChecksumType::None };
 
