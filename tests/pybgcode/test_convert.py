@@ -14,15 +14,15 @@ def test_main():
     assert(pybgcode.is_open(out_f))
 
     cfg = pybgcode.get_config();
-    cfg.compression.file_metadata = pybgcode.BGCode_CompressionType.Heatshrink_11_4
+    cfg.compression.file_metadata = pybgcode.CompressionType.Heatshrink_11_4
     res = pybgcode.from_ascii_to_binary(in_f, out_f, cfg);
 
     assert(res == pybgcode.EResult.Success)
 
-    checksum = pybgcode.Checksum(pybgcode.BGCode_ChecksumType.CRC32)
-    assert(checksum.get_type() == pybgcode.BGCode_ChecksumType.CRC32)
+    checksum = pybgcode.Checksum(pybgcode.ChecksumType.CRC32)
+    assert(checksum.get_type() == pybgcode.ChecksumType.CRC32)
     res = checksum.read(out_f);
-    # assert(res == pybgcode.EResult.Success)
+    assert(res == pybgcode.EResult.Success)
     
 
     pybgcode.close(out_f)
