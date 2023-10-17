@@ -69,6 +69,8 @@ PYBIND11_MODULE(pybgcode, m) {
            from_binary_to_ascii
     )pbdoc";
 
+    // Auxiliary FILE API:
+
     py::class_<FILEWrapper> file_io_binding(m,
                                             "FILEWrapper",
                                             R"pbdoc(A FILE* wrapper to pass around in Python code)pbdoc");
@@ -95,6 +97,8 @@ PYBIND11_MODULE(pybgcode, m) {
 
     m.def("close", [](FILEWrapper &f) { f.close(); }, R"pbdoc(Close a previously opened file)pbdoc", py::arg("file"));
     m.def("is_open", [](const FILEWrapper &f) { return f.fptr != nullptr; }, R"pbdoc(Check if file is open)pbdoc", py::arg("file"));
+
+    // Core API:
 
     py::enum_<core::EResult>(m, "EResult")
         .value("Success", core::EResult::Success)
@@ -155,18 +159,6 @@ PYBIND11_MODULE(pybgcode, m) {
         .value("JPG", core::EThumbnailFormat::JPG)
         .value("QOI", core::EThumbnailFormat::QOI);
 
-    py::class_<binarize::BinarizerConfig::Compression>(m, "BinarizerCompression")
-        .def_readwrite("file_metadata", &binarize::BinarizerConfig::Compression::file_metadata)
-        .def_readwrite("printer_metadata", &binarize::BinarizerConfig::Compression::printer_metadata)
-        .def_readwrite("print_metadata", &binarize::BinarizerConfig::Compression::print_metadata)
-        .def_readwrite("slicer_metadata", &binarize::BinarizerConfig::Compression::slicer_metadata)
-        .def_readwrite("gcode", &binarize::BinarizerConfig::Compression::gcode);
-    py::class_<binarize::BinarizerConfig>(m, "BinarizerConfig")
-        .def_readwrite("compression", &binarize::BinarizerConfig::compression)
-        .def_readwrite("gcode_encoding", &binarize::BinarizerConfig::gcode_encoding)
-        .def_readwrite("metadata_encoding", &binarize::BinarizerConfig::metadata_encoding)
-        .def_readwrite("checksum", &binarize::BinarizerConfig::checksum);
-
     py::class_<core::Checksum>(m, "Checksum")
         .def(py::init<core::EChecksumType>())
         .def("get_type", &core::Checksum::get_type)
@@ -180,6 +172,7 @@ PYBIND11_MODULE(pybgcode, m) {
         });
 
     py::class_<core::FileHeader>(m, "FileHeader")
+        .def(py::init<>())
         .def_readonly("magic", &core::FileHeader::magic)
         .def_readonly("version", &core::FileHeader::version)
         .def_readonly("checksum_type", &core::FileHeader::checksum_type)
@@ -206,6 +199,7 @@ PYBIND11_MODULE(pybgcode, m) {
         });
 
     py::class_<core::ThumbnailParams>(m, "ThumbnailParams")
+        .def(py::init<>())
         .def_readonly("format", &core::ThumbnailParams::format)
         .def_readonly("width", &core::ThumbnailParams::width)
         .def_readonly("height", &core::ThumbnailParams::height)
@@ -269,7 +263,7 @@ PYBIND11_MODULE(pybgcode, m) {
         R"pbdoc(
             Reads next block header from the current file position.
             File position must be at the start of a block header.
-            If return == EResult::Success:
+            If return == EResult.Success:
             - block_header will contain the header of the block.
             - file position will be set at the start of the block parameters data.
             Caller is responsible for providing buffer for checksum calculation, if needed.
@@ -287,7 +281,7 @@ PYBIND11_MODULE(pybgcode, m) {
         R"pbdoc(
             Searches and reads next block header with the given type from the current file position.
             File position must be at the start of a block header.
-            If return == EResult::Success:
+            If return == EResult.Success:
             - block_header will contain the header of the block with the required type.
             - file position will be set at the start of the block parameters data.
             otherwise:
@@ -303,7 +297,7 @@ PYBIND11_MODULE(pybgcode, m) {
         },
         R"pbdoc(
             Calculates block checksum and verify it against checksum stored in file.
-            If return == EResult::Success:
+            If return == EResult.Success:
             - file position will be set at the start of the next block header.
         )pbdoc",
         py::arg("file"), py::arg("file_header"), py::arg("block_header")
@@ -317,7 +311,7 @@ PYBIND11_MODULE(pybgcode, m) {
         R"pbdoc(
             Skips the content (parameters + data + checksum) of the block with the given block header.
             File position must be at the start of the block parameters.
-            If return == EResult::Success:
+            If return == EResult.Success:
             - file position will be set at the start of the next block header.
         )pbdoc",
         py::arg("file"), py::arg("file_header"), py::arg("block_header")
@@ -331,7 +325,7 @@ PYBIND11_MODULE(pybgcode, m) {
         R"pbdoc(
             Skips the block with the given block header.
             File position must be set by a previous call to BlockHeader::write() or BlockHeader::read().
-            If return == EResult::Success:
+            If return == EResult.Success:
             - file position will be set at the start of the next block header.
         )pbdoc",
         py::arg("file"), py::arg("file_header"), py::arg("block_header")
@@ -372,6 +366,120 @@ PYBIND11_MODULE(pybgcode, m) {
         )pbdoc",
         py::arg("file_header"), py::arg("block_header")
     );
+
+    // Binarizer API:
+
+    py::class_<binarize::BaseMetadataBlock>(m, "BaseMetadataBlock")
+        .def(py::init<>())
+        .def_readonly("encoding_type", &binarize::BaseMetadataBlock::encoding_type)
+        .def_readonly("raw_data", &binarize::BaseMetadataBlock::raw_data)
+        .def("write", [](binarize::BaseMetadataBlock &self, FILEWrapper &file, core::EBlockType block_type, core::ECompressionType compression_type, core::Checksum& checksum){
+                return self.write(*file.fptr, block_type, compression_type, checksum);
+            }, R"pbdoc(write block header and data in encoded format)pbdoc", py::arg("file"), py::arg("block_type"), py::arg("compression_type"), py::arg("checksum"))
+        .def("read_data", [](binarize::BaseMetadataBlock &self, FILEWrapper &file, const core::BlockHeader& block_header) {
+                return self.read_data(*file.fptr, block_header);
+            }, R"pbdoc(read block data in encoded format)pbdoc", py::arg("file"), py::arg("block_header"));
+
+    py::class_<binarize::FileMetadataBlock, binarize::BaseMetadataBlock>(m, "FileMetadataBlock")
+        .def(py::init<>())
+        .def("write", [](binarize::FileMetadataBlock &self, FILEWrapper &file, core::ECompressionType compression_type, core::EChecksumType checksum_type){
+                return self.write(*file.fptr, compression_type, checksum_type);
+            }, R"pbdoc(write block header and data)pbdoc", py::arg("file"), py::arg("compression_type"), py::arg("checksum_type"))
+        .def("read_data", [](binarize::FileMetadataBlock &self, FILEWrapper &file, const core::FileHeader &file_header, const core::BlockHeader& block_header) {
+                return self.read_data(*file.fptr, file_header, block_header);
+            }, R"pbdoc(read block data)pbdoc", py::arg("file"), py::arg("file_header"), py::arg("block_header"));
+
+    py::class_<binarize::PrintMetadataBlock, binarize::BaseMetadataBlock>(m, "PrintMetadataBlock")
+        .def(py::init<>())
+        .def("write", [](binarize::PrintMetadataBlock &self, FILEWrapper &file, core::ECompressionType compression_type, core::EChecksumType checksum_type){
+                return self.write(*file.fptr, compression_type, checksum_type);
+            }, R"pbdoc(write block header and data)pbdoc", py::arg("file"), py::arg("compression_type"), py::arg("checksum_type"))
+        .def("read_data", [](binarize::PrintMetadataBlock &self, FILEWrapper &file, const core::FileHeader &file_header, const core::BlockHeader& block_header) {
+                return self.read_data(*file.fptr, file_header, block_header);
+            }, R"pbdoc(read block data)pbdoc", py::arg("file"), py::arg("file_header"), py::arg("block_header"));
+
+    py::class_<binarize::PrinterMetadataBlock, binarize::BaseMetadataBlock>(m, "PrinterMetadataBlock")
+        .def(py::init<>())
+        .def("write", [](binarize::PrinterMetadataBlock &self, FILEWrapper &file, core::ECompressionType compression_type, core::EChecksumType checksum_type){
+                return self.write(*file.fptr, compression_type, checksum_type);
+            }, R"pbdoc(write block header and data)pbdoc", py::arg("file"), py::arg("compression_type"), py::arg("checksum_type"))
+        .def("read_data", [](binarize::PrinterMetadataBlock &self, FILEWrapper &file, const core::FileHeader &file_header, const core::BlockHeader& block_header) {
+                return self.read_data(*file.fptr, file_header, block_header);
+            }, R"pbdoc(read block data)pbdoc", py::arg("file"), py::arg("file_header"), py::arg("block_header"));
+
+    py::class_<binarize::ThumbnailBlock>(m, "ThumbnailBlock")
+        .def(py::init<>())
+        .def_readonly("params", &binarize::ThumbnailBlock::params)
+        .def_readonly("data", &binarize::ThumbnailBlock::data)
+        .def("write", [](binarize::ThumbnailBlock &self, FILEWrapper &file, core::EChecksumType checksum_type){
+                return self.write(*file.fptr, checksum_type);
+            }, R"pbdoc(Write block header and data)pbdoc",  py::arg("file"), py::arg("checksum_type"))
+        .def("read_data", [](binarize::ThumbnailBlock &self, FILEWrapper &file, const core::FileHeader& file_header, const core::BlockHeader& block_header) {
+                return self.read_data(*file.fptr, file_header, block_header);
+            }, R"pbdoc(Read block data)pbdoc", py::arg("file"), py::arg("file_header"), py::arg("block_header"));
+
+    py::class_<binarize::GCodeBlock>(m, "GCodeBlock")
+        .def(py::init<>())
+        .def_readonly("encoding_type", &binarize::GCodeBlock::encoding_type)
+        .def_readonly("raw_data", &binarize::GCodeBlock::raw_data)
+        .def("write", [](binarize::GCodeBlock &self, FILEWrapper &file, core::ECompressionType compression_type, core::EChecksumType checksum_type){
+                return self.write(*file.fptr, compression_type, checksum_type);
+            }, R"pbdoc(write block header and data)pbdoc", py::arg("file"), py::arg("compression_type"), py::arg("checksum_type"))
+        .def("read_data", [](binarize::GCodeBlock &self, FILEWrapper &file, const core::FileHeader &file_header, const core::BlockHeader& block_header) {
+                return self.read_data(*file.fptr, file_header, block_header);
+            }, R"pbdoc(read block data)pbdoc", py::arg("file"), py::arg("file_header"), py::arg("block_header"));
+
+    py::class_<binarize::SlicerMetadataBlock, binarize::BaseMetadataBlock>(m, "SlicerMetadataBlock")
+        .def(py::init<>())
+        .def("write", [](binarize::SlicerMetadataBlock &self, FILEWrapper &file, core::ECompressionType compression_type, core::EChecksumType checksum_type){
+                return self.write(*file.fptr, compression_type, checksum_type);
+            }, R"pbdoc(write block header and data)pbdoc", py::arg("file"), py::arg("compression_type"), py::arg("checksum_type"))
+        .def("read_data", [](binarize::SlicerMetadataBlock &self, FILEWrapper &file, const core::FileHeader &file_header, const core::BlockHeader& block_header) {
+                return self.read_data(*file.fptr, file_header, block_header);
+            }, R"pbdoc(read block data)pbdoc", py::arg("file"), py::arg("file_header"), py::arg("block_header"));
+
+    py::class_<binarize::BinarizerConfig::Compression>(m, "BinarizerCompression")
+        .def(py::init<>())
+        .def_readwrite("file_metadata", &binarize::BinarizerConfig::Compression::file_metadata)
+        .def_readwrite("printer_metadata", &binarize::BinarizerConfig::Compression::printer_metadata)
+        .def_readwrite("print_metadata", &binarize::BinarizerConfig::Compression::print_metadata)
+        .def_readwrite("slicer_metadata", &binarize::BinarizerConfig::Compression::slicer_metadata)
+        .def_readwrite("gcode", &binarize::BinarizerConfig::Compression::gcode);
+
+    py::class_<binarize::BinarizerConfig>(m, "BinarizerConfig")
+        .def(py::init<>())
+        .def_readwrite("compression", &binarize::BinarizerConfig::compression)
+        .def_readwrite("gcode_encoding", &binarize::BinarizerConfig::gcode_encoding)
+        .def_readwrite("metadata_encoding", &binarize::BinarizerConfig::metadata_encoding)
+        .def_readwrite("checksum", &binarize::BinarizerConfig::checksum);
+
+    py::class_<binarize::BinaryData>(m, "BinaryData")
+        .def(py::init<>())
+        .def_readwrite("file_metadata", &binarize::BinaryData::file_metadata)
+        .def_readwrite("printer_metadata", &binarize::BinaryData::printer_metadata)
+        .def_readwrite("thumbnails", &binarize::BinaryData::thumbnails)
+        .def_readwrite("slicer_metadata", &binarize::BinaryData::slicer_metadata)
+        .def_readwrite("printer_metadata", &binarize::BinaryData::printer_metadata);
+
+    py::class_<binarize::Binarizer>(m, "Binarizer")
+        .def(py::init<>())
+        .def("is_enabled", &binarize::Binarizer::is_enabled)
+        .def("set_enabled", &binarize::Binarizer::set_enabled)
+        .def("get_binary_data", [](binarize::Binarizer &self) {
+            return self.binarize::Binarizer::get_binary_data();
+        })
+        .def("get_binary_data", [](const binarize::Binarizer &self) {
+            return self.binarize::Binarizer::get_binary_data();
+        })
+        .def("get_max_gcode_cache_size", &binarize::Binarizer::get_max_gcode_cache_size)
+        .def("set_max_gcode_cache_size", &binarize::Binarizer::set_max_gcode_cache_size)
+        .def("initialize", [](binarize::Binarizer &self, FILEWrapper &file, const binarize::BinarizerConfig &config){
+            return self.initialize(*file.fptr, config);
+        })
+        .def("append_gcode", &binarize::Binarizer::append_gcode)
+        .def("finalize", &binarize::Binarizer::finalize);
+
+    // Convert API:
 
     m.def("get_config", &get_config,  R"pbdoc(Create a default configuration for ascii to binary gcode conversion)pbdoc");
 
