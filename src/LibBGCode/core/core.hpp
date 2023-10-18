@@ -17,7 +17,7 @@ static constexpr const std::array<uint8_t, 4> MAGIC{ 'G', 'C', 'D', 'E' };
 static constexpr const uint32_t VERSION = 1;
 // Max size of checksum buffer data, in bytes
 // Increase this value if you implement a checksum algorithm needing a bigger buffer
-#define MAX_CHECKSUM_SIZE 4
+static constexpr const size_t MAX_CHECKSUM_SIZE = 4;
 
 enum class EResult : uint16_t
 {
@@ -130,7 +130,7 @@ struct FileHeader
 {
     uint32_t magic{ *(uint32_t*)(MAGIC.data()) };
     uint32_t version{ VERSION };
-    uint16_t checksum_type{ (uint16_t)EChecksumType::None };
+    uint16_t checksum_type{ static_cast<uint16_t>(EChecksumType::None) };
 
     EResult write(FILE& file) const;
     EResult read(FILE& file, const uint32_t* const max_version);
