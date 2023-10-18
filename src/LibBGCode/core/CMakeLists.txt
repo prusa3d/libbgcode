@@ -7,11 +7,18 @@ add_library(${_libname}_core
    # Add more source files here if needed
 )
 
-if (CMAKE_COMPILER_IS_GNUCC AND ${PROJECT_NAME}_BUILD_SANITIZERS)
-    target_compile_options(${_libname}_core
-        PUBLIC -Wstrict-aliasing  -fsanitize=address)
-
-    target_link_options(${_libname}_core PUBLIC -fsanitize=address)
+if (${PROJECT_NAME}_BUILD_SANITIZERS)
+    if (CMAKE_COMPILER_IS_GNUCC)
+        target_compile_options(${_libname}_core PUBLIC
+            -g
+            -Wstrict-aliasing
+            -fsanitize=address
+        )
+        target_link_options(${_libname}_core PUBLIC -fsanitize=address)
+    elseif (MSVC)
+        target_compile_options(${_libname}_core PUBLIC /fsanitize=address /Zi)
+        target_link_options(${_libname}_core PUBLIC /DEBUG)
+    endif ()
 endif ()
 
 generate_export_header(${_libname}_core
