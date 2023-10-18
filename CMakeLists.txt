@@ -11,6 +11,7 @@ string(REPLACE "lib" "" _libname ${_libname})
 
 option(${PROJECT_NAME}_BUILD_TESTS "Build unit tests" ON)
 option(${PROJECT_NAME}_BUILD_COMPONENT_Binarize "Include Binarize component in the library" ON)
+option(${PROJECT_NAME}_BUILD_SANITIZERS "Turn on sanitizers" OFF)
 
 # Dependency build management
 option(${PROJECT_NAME}_BUILD_DEPS "Build dependencies before the project" OFF)
