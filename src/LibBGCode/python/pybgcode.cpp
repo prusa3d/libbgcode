@@ -36,7 +36,7 @@ struct FILEWrapper {
     void close()
     {
         if (fptr) {
-            fclose(fptr);
+            std::fclose(fptr);
             fptr = nullptr;
         }
     }
@@ -85,7 +85,7 @@ PYBIND11_MODULE(pybgcode, m) {
             strerror_s(buf, bufsz, errno);
             throw std::runtime_error(buf);
 #else
-        throw std::runtime_error(std::strerror(errno));
+            throw std::runtime_error(std::strerror(errno));
 #endif
         }
 
@@ -95,8 +95,12 @@ PYBIND11_MODULE(pybgcode, m) {
                                             py::arg("name"),
                                             py::arg("mode"));
 
-    m.def("close", [](FILEWrapper &f) { f.close(); }, R"pbdoc(Close a previously opened file)pbdoc", py::arg("file"));
-    m.def("is_open", [](const FILEWrapper &f) { return f.fptr != nullptr; }, R"pbdoc(Check if file is open)pbdoc", py::arg("file"));
+    m.def("close", [](FILEWrapper &f) { f.close(); },
+        R"pbdoc(Close a previously opened file)pbdoc", py::arg("file"));
+    m.def("is_open", [](const FILEWrapper &f) { return f.fptr != nullptr; },
+        R"pbdoc(Check if file is open)pbdoc", py::arg("file"));
+    m.def("rewind", [](FILEWrapper &f) { if (f.fptr) std::rewind(f.fptr); },
+        R"pbdoc(Moves the file position indicator to the beginning of the given file stream)pbdoc");
 
     // Core API:
 
@@ -154,7 +158,7 @@ PYBIND11_MODULE(pybgcode, m) {
         .value("PrinterMetadata", core::EBlockType::PrinterMetadata)
         .value("PrintMetadata", core::EBlockType::PrintMetadata)
         .value("Thumbnail", core::EBlockType::Thumbnail);
-    py::enum_<core::EThumbnailFormat>(m, "ThumbnailFormat")
+    py::enum_<core::EThumbnailFormat>(m, "EThumbnailFormat")
         .value("PNG", core::EThumbnailFormat::PNG)
         .value("JPG", core::EThumbnailFormat::JPG)
         .value("QOI", core::EThumbnailFormat::QOI);
@@ -410,7 +414,9 @@ PYBIND11_MODULE(pybgcode, m) {
     py::class_<binarize::ThumbnailBlock>(m, "ThumbnailBlock")
         .def(py::init<>())
         .def_readonly("params", &binarize::ThumbnailBlock::params)
-        .def_readonly("data", &binarize::ThumbnailBlock::data)
+        .def("data", [](const binarize::ThumbnailBlock &self) {
+            return py::bytes(reinterpret_cast<const char*>(self.data.data()), self.data.size());
+        })
         .def("write", [](binarize::ThumbnailBlock &self, FILEWrapper &file, core::EChecksumType checksum_type){
                 return self.write(*file.fptr, checksum_type);
             }, R"pbdoc(Write block header and data)pbdoc",  py::arg("file"), py::arg("checksum_type"))
