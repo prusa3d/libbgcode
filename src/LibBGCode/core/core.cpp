@@ -303,13 +303,12 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
     rewind(&file);
 
     // check magic number
-    std::array<uint8_t, 4> magic;
-    const size_t rsize = fread((void*)magic.data(), 1, magic.size(), &file);
-    if (ferror(&file) && rsize != magic.size())
+    uint32_t magic;
+    const size_t rsize = fread((void*)&magic, 1, sizeof(magic), &file);
+    if (ferror(&file) && rsize != sizeof(magic))
         return EResult::ReadError;
     else {
-        const uint32_t magic_value = magic[0] << 0 | magic[1] << 8 | magic[2] << 16 | magic[3] << 24;
-        if (magic_value != MAGIC) {
+        if (magic != MAGIC) {
             // restore file position
             fseek(&file, curr_pos, SEEK_SET);
             return EResult::InvalidMagicNumber;
