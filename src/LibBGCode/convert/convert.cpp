@@ -468,7 +468,7 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
                 }
                 ThumbnailBlock& thumbnail = binary_data.thumbnails.back();
                 auto sv_line_bytes = reinterpret_cast<const std::byte*>(sv_line.data());
-                std::copy(sv_line_bytes, sv_line_bytes + sv_line.size(), std::back_inserter(thumbnail.data));
+                thumbnail.data.insert(thumbnail.data.begin() + curr_thumbnail_data_loaded, sv_line_bytes, sv_line_bytes + sv_line.size());
                 curr_thumbnail_data_loaded += sv_line.size();
                 processed_lines.emplace_back(lines_counter++);
                 return;
