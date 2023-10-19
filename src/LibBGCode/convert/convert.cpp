@@ -453,11 +453,11 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
                 ThumbnailBlock& thumbnail = binary_data.thumbnails.back();
                 if (thumbnail.data.size() > curr_thumbnail_data_loaded)
                     thumbnail.data.resize(curr_thumbnail_data_loaded);
-                std::string decoded;
-                decoded.resize(boost::beast::detail::base64::decoded_size(thumbnail.data.size()));
-                decoded.resize(boost::beast::detail::base64::decode((void*)&decoded[0], (const char*)thumbnail.data.data(), thumbnail.data.size()).first);
+                std::vector<std::byte> decoded(boost::beast::detail::base64::decoded_size(thumbnail.data.size()));
+                auto thumbnail_buf = reinterpret_cast<const char *>(thumbnail.data.data());
+                decoded.resize(boost::beast::detail::base64::decode(decoded.data(), thumbnail_buf, thumbnail.data.size()).first);
                 thumbnail.data.clear();
-                thumbnail.data.insert(thumbnail.data.end(), decoded.begin(), decoded.end());
+                std::copy(decoded.begin(), decoded.end(), std::back_inserter(thumbnail.data));
                 processed_lines.emplace_back(lines_counter++);
                 return;
             }
@@ -467,7 +467,8 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
                     return;
                 }
                 ThumbnailBlock& thumbnail = binary_data.thumbnails.back();
-                thumbnail.data.insert(thumbnail.data.begin() + curr_thumbnail_data_loaded, sv_line.begin(), sv_line.end());
+                auto sv_line_bytes = reinterpret_cast<const std::byte*>(sv_line.data());
+                std::copy(sv_line_bytes, sv_line_bytes + sv_line.size(), std::back_inserter(thumbnail.data));
                 curr_thumbnail_data_loaded += sv_line.size();
                 processed_lines.emplace_back(lines_counter++);
                 return;
@@ -561,7 +562,7 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
 BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_file, bool verify_checksum)
 {
     // initialize buffer for checksum calculation, if verify_checksum is true
-    std::vector<uint8_t> checksum_buffer;
+    std::vector<std::byte> checksum_buffer;
     if (verify_checksum)
         checksum_buffer.resize(65535);
 

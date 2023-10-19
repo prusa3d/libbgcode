@@ -166,7 +166,9 @@ PYBIND11_MODULE(pybgcode, m) {
     py::class_<core::Checksum>(m, "Checksum")
         .def(py::init<core::EChecksumType>())
         .def("get_type", &core::Checksum::get_type)
-        .def("append", static_cast<void (core::Checksum::*)(const std::vector<uint8_t> &)> (&core::Checksum::append))
+        .def("append", [](core::Checksum &self, const std::string &buf) {
+            self.append(buf.data(), buf.size());
+        })
         .def("matches", &core::Checksum::matches)
         .def("read", [](core::Checksum &self, FILEWrapper &file) {
             return self.read(*file.fptr);
@@ -223,7 +225,7 @@ PYBIND11_MODULE(pybgcode, m) {
     m.def(
         "is_valid_binary_gcode",
         [](FILEWrapper& file, bool check_contents) {
-            std::vector<uint8_t> cs_buffer;
+            std::vector<std::byte> cs_buffer;
 
             if (check_contents)
                 cs_buffer.resize(MaxBuffSz);
@@ -296,7 +298,7 @@ PYBIND11_MODULE(pybgcode, m) {
     m.def(
         "verify_block_checksum",
         [](FILEWrapper& file, const core::FileHeader& file_header, const core::BlockHeader& block_header){
-            std::array<uint8_t, MaxBuffSz> buff;
+            std::array<std::byte, MaxBuffSz> buff;
             return core::verify_block_checksum(*file.fptr, file_header, block_header, buff.data(), buff.size());
         },
         R"pbdoc(
