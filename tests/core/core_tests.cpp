@@ -89,7 +89,7 @@ static std::string thumbnail_format_as_string(EThumbnailFormat type)
      std::cout << "File:" << filename << "\n";
 
      const size_t MAX_CHECKSUM_CACHE_SIZE = 2048;
-     uint8_t checksum_verify_buffer[MAX_CHECKSUM_CACHE_SIZE];
+     std::byte checksum_verify_buffer[MAX_CHECKSUM_CACHE_SIZE];
 
      FILE* file = boost::nowide::fopen(filename.c_str(), "rb");
      REQUIRE(file != nullptr);
@@ -166,7 +166,7 @@ static std::string thumbnail_format_as_string(EThumbnailFormat type)
      std::cout << "File:" << filename << "\n";
 
      const size_t MAX_CHECKSUM_CACHE_SIZE = 2048;
-     uint8_t checksum_verify_buffer[MAX_CHECKSUM_CACHE_SIZE];
+     std::byte checksum_verify_buffer[MAX_CHECKSUM_CACHE_SIZE];
 
      FILE* file = boost::nowide::fopen(filename.c_str(), "rb");
      REQUIRE(file != nullptr);
