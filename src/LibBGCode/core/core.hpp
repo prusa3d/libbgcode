@@ -259,14 +259,14 @@ struct BlockHeader
     // Position is set by calling write() and read() methods.
     long get_position() const;
 
-    EResult write(FILE& file) const;
+    EResult write(FILE& file);
     EResult read(FILE& file);
 
     // Returs the size of this BlockHeader, in bytes
     size_t get_size() const;
 
 private:
-    mutable long m_position{ 0 };
+    long m_position{ 0 };
 };
 
 struct ThumbnailParams

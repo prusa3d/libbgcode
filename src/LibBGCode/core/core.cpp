@@ -159,7 +159,7 @@ long BlockHeader::get_position() const
     return m_position;
 }
 
-EResult BlockHeader::write(FILE& file) const
+EResult BlockHeader::write(FILE& file)
 {
     m_position = ftell(&file);
     if (!write_to_file(file, &type, sizeof(type)))

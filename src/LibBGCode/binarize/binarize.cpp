@@ -579,7 +579,7 @@ EResult ThumbnailBlock::write(FILE& file, EChecksumType checksum_type)
         return EResult::InvalidThumbnailDataSize;
 
     // write block header
-    const BlockHeader block_header((uint16_t)EBlockType::Thumbnail, (uint16_t)ECompressionType::None, (uint32_t)data.size());
+    BlockHeader block_header((uint16_t)EBlockType::Thumbnail, (uint16_t)ECompressionType::None, (uint32_t)data.size());
     EResult res = block_header.write(file);
     if (res != EResult::Success)
         // propagate error
