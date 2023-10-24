@@ -29,22 +29,6 @@
           }
         },
         {
-            "name": "python-module",
-            "displayName": "Python module",
-            "description": "Default build for any desktop OS with Python bindings",
-            "binaryDir": "${sourceDir}/build-python-module",
-            "cacheVariables": {
-              "CMAKE_BUILD_TYPE": "Release",
-              "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/dist",
-              "LibBGCode_BUILD_CMD_TOOL": false,
-              "LibBGCode_DEPS_PRESET": "python-module",
-              "CMAKE_PREFIX_PATH": {
-                  "type": "PATH",
-                  "value": "${sourceDir}/deps/build-python-module/destdir/usr/local"
-              }
-            }
-        },
-        {
             "name": "wasm",
             "displayName": "WebAssembly module",
             "description": "WebAssembly build which only works with emscripten compiler",
@@ -76,11 +60,6 @@
             "name": "wasm",
             "configurePreset": "wasm",
             "configuration": "MinSizeRel"
-        },
-        {
-          "name": "python-module",
-          "configurePreset": "python-module",
-          "configuration": "Release"
         }
     ]
 }

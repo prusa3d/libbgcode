@@ -58,7 +58,6 @@ jobs:
         -DCMAKE_BUILD_TYPE=$BUILD_TYPE
         -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build-python-module/destdir/usr/local
         -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/dist
-        -DLibBGCode_BUILD_PYTHON_BINDING=ON
         -DCATCH_EXTRA_ARGS="--reporter;junit;--out=result-junit-linux.xml"
     
     - name: Build
@@ -250,7 +249,6 @@ jobs:
       run: > 
         cmake .. -DCMAKE_PREFIX_PATH=${{github.workspace}}\deps\build-python-module\destdir\usr\local
         -DCMAKE_INSTALL_PREFIX=${{github.workspace}}\build\dist
-        -DLibBGCode_BUILD_PYTHON_BINDING=ON
         -DCATCH_EXTRA_ARGS="--reporter;junit;--out=result-junit-msvc.xml"
 
     - name: Build
@@ -350,7 +348,6 @@ jobs:
         -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 
         -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build-python-module/destdir/usr/local 
         -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/dist
-        -DLibBGCode_BUILD_PYTHON_BINDING=ON
         -DCATCH_EXTRA_ARGS="--reporter;junit;--out=result-junit-mac.xml"
     
     - name: Build
