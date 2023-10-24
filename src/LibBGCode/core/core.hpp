@@ -179,7 +179,7 @@ enum class EThumbnailFormat : uint16_t
     QOI
 };
 
-BGCODE_CORE_EXPORT class Checksum
+class BGCODE_CORE_EXPORT Checksum
 {
 public:
     // Constructs a checksum of the given type.
@@ -232,7 +232,7 @@ private:
     std::array<std::byte, MAX_CHECKSUM_SIZE> m_checksum;
 };
 
-BGCODE_CORE_EXPORT struct FileHeader
+struct BGCODE_CORE_EXPORT FileHeader
 {
     uint32_t magic{ MAGICi32 };
     uint32_t version{ VERSION };
@@ -242,7 +242,7 @@ BGCODE_CORE_EXPORT struct FileHeader
     EResult read(FILE& file, const uint32_t* const max_version);
 };
 
-BGCODE_CORE_EXPORT struct BlockHeader
+struct BGCODE_CORE_EXPORT BlockHeader
 {
     uint16_t type{ 0 };
     uint16_t compression{ 0 };
@@ -269,7 +269,7 @@ private:
     long m_position{ 0 };
 };
 
-BGCODE_CORE_EXPORT struct ThumbnailParams
+struct BGCODE_CORE_EXPORT ThumbnailParams
 {
     uint16_t format;
     uint16_t width;

@@ -6,7 +6,7 @@
 
 namespace bgcode { namespace binarize {
 
-BGCODE_BINARIZE_EXPORT struct BaseMetadataBlock
+struct BGCODE_BINARIZE_EXPORT BaseMetadataBlock
 {
     // type of data encoding
     uint16_t encoding_type{ 0 };
@@ -19,7 +19,7 @@ BGCODE_BINARIZE_EXPORT struct BaseMetadataBlock
     core::EResult read_data(FILE& file, const core::BlockHeader& block_header);
 };
 
-BGCODE_BINARIZE_EXPORT struct FileMetadataBlock : public BaseMetadataBlock
+struct BGCODE_BINARIZE_EXPORT FileMetadataBlock : public BaseMetadataBlock
 {
     // write block header and data
     core::EResult write(FILE& file, core::ECompressionType compression_type, core::EChecksumType checksum_type) const;
@@ -27,7 +27,7 @@ BGCODE_BINARIZE_EXPORT struct FileMetadataBlock : public BaseMetadataBlock
     core::EResult read_data(FILE& file, const core::FileHeader& file_header, const core::BlockHeader& block_header);
 };
 
-BGCODE_BINARIZE_EXPORT struct PrintMetadataBlock : public BaseMetadataBlock
+struct BGCODE_BINARIZE_EXPORT PrintMetadataBlock : public BaseMetadataBlock
 {
     // write block header and data
     core::EResult write(FILE& file, core::ECompressionType compression_type, core::EChecksumType checksum_type) const;
@@ -35,7 +35,7 @@ BGCODE_BINARIZE_EXPORT struct PrintMetadataBlock : public BaseMetadataBlock
     core::EResult read_data(FILE& file, const core::FileHeader& file_header, const core::BlockHeader& block_header);
 };
 
-BGCODE_BINARIZE_EXPORT struct PrinterMetadataBlock : public BaseMetadataBlock
+struct BGCODE_BINARIZE_EXPORT PrinterMetadataBlock : public BaseMetadataBlock
 {
     // write block header and data
     core::EResult write(FILE& file, core::ECompressionType compression_type, core::EChecksumType checksum_type) const;
@@ -43,7 +43,7 @@ BGCODE_BINARIZE_EXPORT struct PrinterMetadataBlock : public BaseMetadataBlock
     core::EResult read_data(FILE& file, const core::FileHeader& file_header, const core::BlockHeader& block_header);
 };
 
-BGCODE_BINARIZE_EXPORT struct ThumbnailBlock
+struct BGCODE_BINARIZE_EXPORT ThumbnailBlock
 {
     core::ThumbnailParams params;
     std::vector<std::byte> data;
@@ -57,7 +57,7 @@ private:
     void update_checksum(core::Checksum& checksum) const;
 };
 
-BGCODE_BINARIZE_EXPORT struct GCodeBlock
+struct BGCODE_BINARIZE_EXPORT GCodeBlock
 {
     uint16_t encoding_type{ 0 };
     std::string raw_data;
@@ -68,7 +68,7 @@ BGCODE_BINARIZE_EXPORT struct GCodeBlock
     core::EResult read_data(FILE& file, const core::FileHeader& file_header, const core::BlockHeader& block_header);
 };
 
-BGCODE_BINARIZE_EXPORT struct SlicerMetadataBlock : public BaseMetadataBlock
+struct BGCODE_BINARIZE_EXPORT SlicerMetadataBlock : public BaseMetadataBlock
 {
     // write block header and data
     core::EResult write(FILE& file, core::ECompressionType compression_type, core::EChecksumType checksum_type) const;
@@ -76,7 +76,7 @@ BGCODE_BINARIZE_EXPORT struct SlicerMetadataBlock : public BaseMetadataBlock
     core::EResult read_data(FILE& file, const core::FileHeader& file_header, const core::BlockHeader& block_header);
 };
 
-BGCODE_BINARIZE_EXPORT struct BinarizerConfig
+struct BGCODE_BINARIZE_EXPORT BinarizerConfig
 {
     struct Compression
     {
@@ -92,7 +92,7 @@ BGCODE_BINARIZE_EXPORT struct BinarizerConfig
     core::EChecksumType checksum{ core::EChecksumType::CRC32 };
 };
 
-BGCODE_BINARIZE_EXPORT struct BinaryData
+struct BGCODE_BINARIZE_EXPORT BinaryData
 {
     FileMetadataBlock file_metadata;
     PrinterMetadataBlock printer_metadata;
@@ -101,7 +101,7 @@ BGCODE_BINARIZE_EXPORT struct BinaryData
     PrintMetadataBlock print_metadata;
 };
 
-BGCODE_BINARIZE_EXPORT class Binarizer
+class BGCODE_BINARIZE_EXPORT Binarizer
 {
 public:
     bool is_enabled() const;

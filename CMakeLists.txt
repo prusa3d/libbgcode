@@ -38,9 +38,6 @@ if (EMSCRIPTEN)
                           "${PROJECT_NAME}_BUILD_COMPONENT_Convert" OFF)
 endif ()
 
-cmake_dependent_option(${PROJECT_NAME}_BUILD_PYTHON_BINDING "Include bgcode wasm module in the build" OFF
-                       "${PROJECT_NAME}_BUILD_COMPONENT_Convert" OFF)
-
 set(_selected_components "Core")
 set(_selected_libs "${_libname}_core")
 set(_highest_comp "Core")
@@ -55,10 +52,6 @@ set(namespace "${PROJECT_NAME}::")
 include(GenerateExportHeader)
 
 set(_srcloc src/${PROJECT_NAME})
-
-if (${PROJECT_NAME}_BUILD_PYTHON_BINDING)
-    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-endif ()
 
 add_subdirectory(${_srcloc}/core)
 
@@ -91,7 +84,6 @@ endif()
 
 if (${PROJECT_NAME}_BUILD_PYTHON_BINDING)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-    add_subdirectory(${_srcloc}/python)
 endif ()
 
 if(${PROJECT_NAME}_BUILD_TESTS)

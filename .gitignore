@@ -6,3 +6,4 @@ pybgcode.egg-info
 dist/
 Testing
 .py-build*
+__pycache__
