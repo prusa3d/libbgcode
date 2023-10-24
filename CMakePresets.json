@@ -37,7 +37,6 @@
               "CMAKE_BUILD_TYPE": "Release",
               "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/dist",
               "LibBGCode_BUILD_CMD_TOOL": false,
-              "LibBGCode_BUILD_PYTHON_BINDING": true,
               "LibBGCode_DEPS_PRESET": "python-module",
               "CMAKE_PREFIX_PATH": {
                   "type": "PATH",

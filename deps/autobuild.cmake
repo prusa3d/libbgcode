@@ -60,6 +60,8 @@ endif ()
 
 if (${PROJECT_NAME}_DEPS_PRESET STREQUAL "wasm")
     list(APPEND CMAKE_FIND_ROOT_PATH ${_build_dir}/destdir/usr/local)
+    set(CMAKE_FIND_ROOT_PATH "${CMAKE_FIND_ROOT_PATH}" CACHE STRING "")
 else ()
     list(APPEND CMAKE_PREFIX_PATH ${_build_dir}/destdir/usr/local)
+    set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" CACHE STRING "")
 endif ()

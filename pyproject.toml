@@ -23,19 +23,20 @@ requires = ["py-build-cmake~=0.1.8"]
 build-backend = "py_build_cmake.build"
 
 [tool.py-build-cmake.module] # Where to find the Python module to package
-directory = "src/LibBGCode/python/"
+directory = "pybgcode/"
 
 [tool.py-build-cmake.sdist] # What to include in source distributions
-include = [ "src/*" , "deps/*", "deps/build.cmake", "cmake/*", "CMakeLists.txt", "CMakePresets.json"]
+include = [ "pybgcode/*", "src/*" , "deps/*", "deps/build.cmake", "cmake/*", "CMakeLists.txt", "CMakePresets.json"]
 exclude = [".gitignore", ".git/", ".github/", "deps/build*", "build*", "CMakeLists.txt.user", "*.bak"]
 
 [tool.py-build-cmake.cmake] # How to build the CMake project
-source_path = "."
+source_path = "./pybgcode"
 build_type = "Release"
 config = ["Release"]
-# build_args = ["-j"]
-options = { "LibBGCode_BUILD_PYTHON_BINDING" = "on", "LibBGCode_BUILD_CMD_TOOL" = "off", "LibBGCode_BUILD_TESTS" = "off", "LibBGCode_BUILD_DEPS" = "on", "LibBGCode_DEPS_PRESET" = "python-module" }
+# generator = "Ninja"
+options = { "PyBGCode_LINK_SYSTEM_LIBBGCODE" = "off" }
 install_components = ["python_modules"]
+build_args = ["-j1", "--target", "build_and_test"]
 # preset = "python-module"
 # build_presets = ["python-module"]
 # build_path = "build"
