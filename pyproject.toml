@@ -36,7 +36,7 @@ config = ["Release"]
 # generator = "Ninja"
 options = { "PyBGCode_LINK_SYSTEM_LIBBGCODE" = "off" }
 install_components = ["python_modules"]
-build_args = ["-j1", "--target", "build_and_test"]
+build_args = ["--target", "build_and_test"]
 # preset = "python-module"
 # build_presets = ["python-module"]
 # build_path = "build"
