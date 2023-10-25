@@ -1,6 +1,23 @@
 cmake_minimum_required(VERSION 3.12)
 project(LibBGCode_Deps)
 
+# Support legacy parameter DESTDIR
+if (DESTDIR)
+  set(${PROJECT_NAME}_DEP_INSTALL_PREFIX ${DESTDIR}/usr/local CACHE PATH "Destination directory" FORCE)
+endif ()
+
+# Support legacy parameter DEP_DOWNLOAD_DIR
+if (DEP_DOWNLOAD_DIR)
+  set(${PROJECT_NAME}_DEP_DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR} CACHE PATH "Path for downloaded source packages." FORCE)
+endif ()
+
+# Slightly controversial
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../cmake/modules)
+
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+    cmake_policy(SET CMP0135 NEW)
+endif ()
+
 if (APPLE)
     # This ensures dependencies don't use SDK features which are not available in the version specified by Deployment target
     # That can happen when one uses a recent SDK but specifies an older Deployment target
