@@ -21,7 +21,7 @@
           "description": "Python module dependencies",
           "binaryDir": "${sourceDir}/build-python-module",
           "cacheVariables": {
-              "LibBGCode_Deps_SELECT_pybind11": true
+              "LibBGCode_Deps_BUILD_pybind11": true
           }
         },
         {
@@ -30,7 +30,7 @@
             "binaryDir": "${sourceDir}/build-wasm",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "MinSizeRel",
-                "LibBGCode_Deps_SELECT_ZLIB": {
+                "LibBGCode_Deps_BUILD_ZLIB": {
                     "type": "BOOL",
                     "value": "ON"
                 }

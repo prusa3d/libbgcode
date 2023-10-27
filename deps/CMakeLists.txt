@@ -44,7 +44,8 @@ include(${PROJECT_SOURCE_DIR}/../cmake/modules/AddCMakeProject.cmake)
 set(supported_packages Boost heatshrink Catch2 ZLIB pybind11)
 
 include(CMakeDependentOption)
-option(${PROJECT_NAME}_SELECT_ALL "Choose all external projects to be built." ON)
+option(${PROJECT_NAME}_SELECT_ALL "Choose all external projects to be selected (create build target for them)." ON)
+option(${PROJECT_NAME}_BUILD_ALL "Choose all external projects to be built." ON)
 
 find_package(Git REQUIRED)
 
@@ -52,8 +53,8 @@ find_package(Git REQUIRED)
 set(PATCH_CMD ${GIT_EXECUTABLE} apply --verbose --ignore-space-change --whitespace=fix)
 
 foreach (pkg ${supported_packages})
-    option(${PROJECT_NAME}_SELECT_${pkg} "Select package ${pkg} to be built." OFF)
-    if (${PROJECT_NAME}_SELECT_ALL OR ${PROJECT_NAME}_SELECT_${pkg})
+    option(${PROJECT_NAME}_BUILD_${pkg} "Select package ${pkg} to be built." OFF)
+    if (${PROJECT_NAME}_SELECT_ALL OR ${PROJECT_NAME}_BUILD_ALL OR ${PROJECT_NAME}_BUILD_${pkg})
         include(${pkg}/${pkg}.cmake)
     endif ()
 endforeach()

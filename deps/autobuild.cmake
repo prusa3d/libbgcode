@@ -35,8 +35,15 @@ endif ()
 
 message(STATUS "build dir = ${_build_dir}")
 
+set(_preset_arg "--preset ${${PROJECT_NAME}_DEPS_PRESET}")
+if (CMAKE_VERSION VERSION_LESS 3.19)
+    message(WARNING "CMake presets are not supported with this version of CMake. Building all dependency packages!")
+    set(_preset_arg "." )
+    list(APPEND _build_args "-DLibBGCode_Deps_BUILD_ALL:BOOL=ON")
+endif ()
+
 execute_process(
-    COMMAND ${CMAKE_COMMAND} --preset ${${PROJECT_NAME}_DEPS_PRESET} "${_gen_arg}" -B ${_build_dir} ${_build_args}
+    COMMAND ${CMAKE_COMMAND} "${_preset_arg}" "${_gen_arg}" -B ${_build_dir} ${_build_args}
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
     ${_output_quiet}
     ERROR_VARIABLE _deps_configure_output
