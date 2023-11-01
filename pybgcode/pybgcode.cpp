@@ -358,6 +358,22 @@ PYBIND11_MODULE(pybgcode, m) {
         py::arg("file_header"), py::arg("block_header")
     );
 
+    m.def(
+        "bgcode_version",
+        &core::bgcode_version,
+        R"pbdoc(
+            Highest version of the binary format supported by this library instance
+        )pbdoc"
+    );
+
+    m.def(
+        "version",
+        &core::version,
+        R"pbdoc(
+            Version of the library.
+        )pbdoc"
+    );
+
     // Binarizer API:
 
     py::class_<binarize::BaseMetadataBlock>(m, "BaseMetadataBlock")

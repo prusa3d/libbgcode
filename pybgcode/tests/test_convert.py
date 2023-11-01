@@ -40,7 +40,7 @@ def read_thumbnails(gcodefile):
 
 
 def test_main():
-    assert(pybgcode.__version__ == "0.1")
+    assert(pybgcode.__version__ == pybgcode.version())
 
     in_f  = pybgcode.open("test.gcode", "r");
     out_f = pybgcode.open("test.bgcode", "wb");

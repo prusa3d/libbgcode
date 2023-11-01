@@ -16,7 +16,7 @@ static constexpr const size_t MAX_CHECKSUM_SIZE = 4;
 
 static constexpr const std::array<char, 4> MAGIC{ 'G', 'C', 'D', 'E' };
 
-// Library version
+// Highest binary gcode file version supported.
 static constexpr const uint32_t VERSION = 1;
 
 template<class I, class T = I>

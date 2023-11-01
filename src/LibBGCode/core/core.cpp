@@ -526,9 +526,14 @@ BGCODE_CORE_EXPORT size_t block_content_size(const FileHeader& file_header, cons
   return block_payload_size(block_header) + checksum_size((EChecksumType)file_header.checksum_type);
 }
 
-uint32_t version() noexcept
+uint32_t bgcode_version() noexcept
 {
     return VERSION;
+}
+
+const char *version() noexcept
+{
+    return LibBGCode_VERSION;
 }
 
 } // namespace core

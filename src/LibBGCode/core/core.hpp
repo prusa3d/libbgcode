@@ -206,7 +206,11 @@ extern BGCODE_CORE_EXPORT size_t checksum_size(EChecksumType type);
 // Returns the size of the content (parameters + data + checksum) of the block with the given header, in bytes.
 extern BGCODE_CORE_EXPORT size_t block_content_size(const FileHeader& file_header, const BlockHeader& block_header);
 
-extern BGCODE_CORE_EXPORT uint32_t version() noexcept;
+// Highest version of the binary format supported by this library instance
+extern BGCODE_CORE_EXPORT uint32_t bgcode_version() noexcept;
+
+// Version of the library
+extern BGCODE_CORE_EXPORT const char* version() noexcept;
 
 }} // bgcode::core
 

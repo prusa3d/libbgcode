@@ -22,6 +22,8 @@ if (${PROJECT_NAME}_BUILD_SANITIZERS)
     endif ()
 endif ()
 
+target_compile_definitions(${_libname}_core PRIVATE LibBGCode_VERSION=R"\(${LibBGCode_VERSION}\)")
+
 generate_export_header(${_libname}_core
    EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/core/export.h
 )
