@@ -915,4 +915,6 @@ EResult Binarizer::finalize()
     return EResult::Success;
 }
 
+BinarizerConfig::BinarizerConfig() = default;
+
 }} // namespace bgcode

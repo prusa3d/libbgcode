@@ -73,7 +73,7 @@ struct BGCODE_BINARIZE_EXPORT SlicerMetadataBlock : public BaseMetadataBlock
 
 struct BGCODE_BINARIZE_EXPORT BinarizerConfig
 {
-    struct Compression
+    struct BGCODE_BINARIZE_EXPORT Compression
     {
         core::ECompressionType file_metadata{ core::ECompressionType::None };
         core::ECompressionType printer_metadata{ core::ECompressionType::None };
@@ -85,6 +85,8 @@ struct BGCODE_BINARIZE_EXPORT BinarizerConfig
     core::EGCodeEncodingType gcode_encoding{ core::EGCodeEncodingType::None };
     core::EMetadataEncodingType metadata_encoding{ core::EMetadataEncodingType::INI };
     core::EChecksumType checksum{ core::EChecksumType::CRC32 };
+
+    BinarizerConfig();
 };
 
 struct BGCODE_BINARIZE_EXPORT BinaryData

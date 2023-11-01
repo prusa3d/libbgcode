@@ -28,7 +28,7 @@ target_include_directories(${_libname}_convert
         $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(${_libname}_convert PUBLIC  ${_libname}_core)
-target_link_libraries(${_libname}_convert PRIVATE ${_libname}_binarize Boost::boost)
+target_link_libraries(${_libname}_convert PUBLIC ${_libname}_binarize ${_libname}_core)
+target_link_libraries(${_libname}_convert PRIVATE Boost::boost)
 
 set(Convert_DOWNSTREAM_DEPS ${Convert_DOWNSTREAM_DEPS} PARENT_SCOPE)
