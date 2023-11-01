@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-include(cmake/ProjectVersion.cmake)
+include(../cmake/ProjectVersion.cmake)
 
 project(PyBGCode VERSION ${LibBGCode_VERSION})
 
