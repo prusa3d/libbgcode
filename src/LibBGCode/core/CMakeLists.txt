@@ -4,6 +4,7 @@ set(Core_DOWNSTREAM_DEPS "")
 add_library(${_libname}_core
    core.cpp
    core.hpp
+   core_impl.hpp
    # Add more source files here if needed
 )
 

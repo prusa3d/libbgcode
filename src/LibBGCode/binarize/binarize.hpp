@@ -13,8 +13,6 @@ struct BGCODE_BINARIZE_EXPORT BaseMetadataBlock
     // data in key/value form
     std::vector<std::pair<std::string, std::string>> raw_data;
 
-    // write block header and data in encoded format
-    core::EResult write(FILE& file, core::EBlockType block_type, core::ECompressionType compression_type, core::Checksum& checksum) const;
     // read block data in encoded format
     core::EResult read_data(FILE& file, const core::BlockHeader& block_header);
 };
@@ -52,9 +50,6 @@ struct BGCODE_BINARIZE_EXPORT ThumbnailBlock
     core::EResult write(FILE& file, core::EChecksumType checksum_type);
     // read block data
     core::EResult read_data(FILE& file, const core::FileHeader& file_header, const core::BlockHeader& block_header);
-
-private:
-    void update_checksum(core::Checksum& checksum) const;
 };
 
 struct BGCODE_BINARIZE_EXPORT GCodeBlock

@@ -57,9 +57,6 @@ def test_main():
 
     assert(res == pybgcode.EResult.Success)
 
-    checksum = pybgcode.Checksum(pybgcode.ChecksumType.CRC32)
-    assert(checksum.get_type() == pybgcode.ChecksumType.CRC32)
-
     pybgcode.close(out_f)
     pybgcode.close(in_f)
 

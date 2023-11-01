@@ -1,4 +1,4 @@
-#include "core.hpp"
+#include "core_impl.hpp"
 #include <cstring>
 
 namespace bgcode { namespace core {
@@ -35,7 +35,7 @@ EResult verify_block_checksum(FILE& file, const FileHeader& file_header,
 
     Checksum curr_cs((EChecksumType)file_header.checksum_type);
     // update block checksum block header
-    block_header.update_checksum(curr_cs);
+    update_checksum(curr_cs, block_header);
 
     // read block payload
     size_t remaining_payload_size = block_payload_size(block_header);
@@ -61,17 +61,11 @@ EResult verify_block_checksum(FILE& file, const FileHeader& file_header,
     return EResult::Success;
 }
 
-static uint16_t checksum_types_count()    { return 1 + (uint16_t)EChecksumType::CRC32; }
-static uint16_t block_types_count()       { return 1 + (uint16_t)EBlockType::Thumbnail; }
-static uint16_t compression_types_count() { return 1 + (uint16_t)ECompressionType::Heatshrink_12_4; }
-
 Checksum::Checksum(EChecksumType type)
     : m_type(type), m_size(checksum_size(type))
 {
     m_checksum.fill(std::byte{0});
 }
-
-EChecksumType Checksum::get_type() const { return m_type; }
 
 void Checksum::append(const std::vector<std::byte>& data)
 {
@@ -100,6 +94,16 @@ EResult Checksum::read(FILE& file)
     }
     return EResult::Success;
 }
+
+FileHeader::FileHeader()
+    : magic{MAGICi32}
+    , version{VERSION}
+    , checksum_type{static_cast<uint16_t>(EChecksumType::None)}
+{}
+
+FileHeader::FileHeader(uint32_t mg, uint32_t ver, uint16_t chk_type)
+    : magic{mg}, version{ver}, checksum_type{chk_type}
+{}
 
 EResult FileHeader::write(FILE& file) const
 {
@@ -144,15 +148,6 @@ BlockHeader::BlockHeader(uint16_t type, uint16_t compression, uint32_t uncompres
   , uncompressed_size(uncompressed_size)
   , compressed_size(compressed_size)
 {}
-
-void BlockHeader::update_checksum(Checksum& checksum) const
-{
-    checksum.append(type);
-    checksum.append(compression);
-    checksum.append(uncompressed_size);
-    if (compression != (uint16_t)ECompressionType::None)
-        checksum.append(compressed_size);
-}
 
 long BlockHeader::get_position() const
 {
@@ -528,7 +523,12 @@ BGCODE_CORE_EXPORT size_t checksum_size(EChecksumType type)
 
 BGCODE_CORE_EXPORT size_t block_content_size(const FileHeader& file_header, const BlockHeader& block_header)
 {
-    return block_payload_size(block_header) + checksum_size((EChecksumType)file_header.checksum_type);
+  return block_payload_size(block_header) + checksum_size((EChecksumType)file_header.checksum_type);
+}
+
+uint32_t version() noexcept
+{
+    return VERSION;
 }
 
 } // namespace core
