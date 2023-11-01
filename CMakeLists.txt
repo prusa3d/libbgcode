@@ -56,6 +56,11 @@ include(GenerateExportHeader)
 
 set(_srcloc src/${PROJECT_NAME})
 
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.rc.in
+  ${PROJECT_BINARY_DIR}/version.rc
+  @ONLY)
+
 add_subdirectory(${_srcloc}/core)
 
 if (${PROJECT_NAME}_BUILD_COMPONENT_Binarize)
@@ -111,6 +116,11 @@ foreach(_comp ${_selected_components})
     # Install targets and headers
     string(TOLOWER ${_comp} _comp_lower)
     set(_export_targets ${_libname}_${_comp_lower})
+
+    set_target_properties(${_libname}_${_comp_lower}
+        PROPERTIES
+        VERSION ${PROJECT_VERSION}
+        SOVERSION ${PROJECT_VERSION})
 
     install(TARGETS ${_export_targets}
         EXPORT ${PROJECT_NAME}${_comp}Targets

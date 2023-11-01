@@ -11,6 +11,7 @@ endif ()
 add_library(${_libname}_convert
     convert.cpp
     convert.hpp
+    ${PROJECT_BINARY_DIR}/version.rc
     # Add more source files here if needed
 )
 

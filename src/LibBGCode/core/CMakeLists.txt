@@ -5,6 +5,7 @@ add_library(${_libname}_core
    core.cpp
    core.hpp
    core_impl.hpp
+   ${PROJECT_BINARY_DIR}/version.rc
    # Add more source files here if needed
 )
 

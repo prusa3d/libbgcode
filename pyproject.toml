@@ -1,6 +1,6 @@
 [project]
 name = "pybgcode"
-version = "0.2"
+version = "0.2.0"
 description = "Prusa Block & Binary G-code reader / writer / converter"
 authors = [
   { name = "Enrico Turri" }, { name = "Tomas Meszaros" }
