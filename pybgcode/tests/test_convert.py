@@ -40,7 +40,7 @@ def read_thumbnails(gcodefile):
 
 
 def test_main():
-    assert(pybgcode.__version__ == "0.1")
+    assert(pybgcode.__version__ == pybgcode.version())
 
     in_f  = pybgcode.open("test.gcode", "r");
     out_f = pybgcode.open("test.bgcode", "wb");
@@ -56,9 +56,6 @@ def test_main():
     res = pybgcode.from_ascii_to_binary(in_f, out_f, cfg);
 
     assert(res == pybgcode.EResult.Success)
-
-    checksum = pybgcode.Checksum(pybgcode.ChecksumType.CRC32)
-    assert(checksum.get_type() == pybgcode.ChecksumType.CRC32)
 
     pybgcode.close(out_f)
     pybgcode.close(in_f)

@@ -13,8 +13,6 @@ struct BGCODE_BINARIZE_EXPORT BaseMetadataBlock
     // data in key/value form
     std::vector<std::pair<std::string, std::string>> raw_data;
 
-    // write block header and data in encoded format
-    core::EResult write(FILE& file, core::EBlockType block_type, core::ECompressionType compression_type, core::Checksum& checksum) const;
     // read block data in encoded format
     core::EResult read_data(FILE& file, const core::BlockHeader& block_header);
 };
@@ -52,9 +50,6 @@ struct BGCODE_BINARIZE_EXPORT ThumbnailBlock
     core::EResult write(FILE& file, core::EChecksumType checksum_type);
     // read block data
     core::EResult read_data(FILE& file, const core::FileHeader& file_header, const core::BlockHeader& block_header);
-
-private:
-    void update_checksum(core::Checksum& checksum) const;
 };
 
 struct BGCODE_BINARIZE_EXPORT GCodeBlock
@@ -78,7 +73,7 @@ struct BGCODE_BINARIZE_EXPORT SlicerMetadataBlock : public BaseMetadataBlock
 
 struct BGCODE_BINARIZE_EXPORT BinarizerConfig
 {
-    struct Compression
+    struct BGCODE_BINARIZE_EXPORT Compression
     {
         core::ECompressionType file_metadata{ core::ECompressionType::None };
         core::ECompressionType printer_metadata{ core::ECompressionType::None };
@@ -90,6 +85,8 @@ struct BGCODE_BINARIZE_EXPORT BinarizerConfig
     core::EGCodeEncodingType gcode_encoding{ core::EGCodeEncodingType::None };
     core::EMetadataEncodingType metadata_encoding{ core::EMetadataEncodingType::INI };
     core::EChecksumType checksum{ core::EChecksumType::CRC32 };
+
+    BinarizerConfig();
 };
 
 struct BGCODE_BINARIZE_EXPORT BinaryData

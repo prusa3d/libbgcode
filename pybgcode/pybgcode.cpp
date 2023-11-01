@@ -163,20 +163,6 @@ PYBIND11_MODULE(pybgcode, m) {
         .value("JPG", core::EThumbnailFormat::JPG)
         .value("QOI", core::EThumbnailFormat::QOI);
 
-    py::class_<core::Checksum>(m, "Checksum")
-        .def(py::init<core::EChecksumType>())
-        .def("get_type", &core::Checksum::get_type)
-        .def("append", [](core::Checksum &self, const std::string &buf) {
-            self.append(buf.data(), buf.size());
-        })
-        .def("matches", &core::Checksum::matches)
-        .def("read", [](core::Checksum &self, FILEWrapper &file) {
-            return self.read(*file.fptr);
-        })
-        .def("write", [](core::Checksum &self, FILEWrapper &file) {
-            return self.write(*file.fptr);
-        });
-
     py::class_<core::FileHeader>(m, "FileHeader")
         .def(py::init<>())
         .def_readonly("magic", &core::FileHeader::magic)
@@ -195,7 +181,6 @@ PYBIND11_MODULE(pybgcode, m) {
         .def_readonly("compression", &core::BlockHeader::compression)
         .def_readonly("uncompressed_size", &core::BlockHeader::type)
         .def_readonly("compressed_size", &core::BlockHeader::compressed_size)
-        .def("update_checksum", &core::BlockHeader::update_checksum)
         .def("get_size()", &core::BlockHeader::get_size)
         .def("read", [](core::BlockHeader &self, FILEWrapper &file) {
             return self.read(*file.fptr);
@@ -373,15 +358,28 @@ PYBIND11_MODULE(pybgcode, m) {
         py::arg("file_header"), py::arg("block_header")
     );
 
+    m.def(
+        "bgcode_version",
+        &core::bgcode_version,
+        R"pbdoc(
+            Highest version of the binary format supported by this library instance
+        )pbdoc"
+    );
+
+    m.def(
+        "version",
+        &core::version,
+        R"pbdoc(
+            Version of the library.
+        )pbdoc"
+    );
+
     // Binarizer API:
 
     py::class_<binarize::BaseMetadataBlock>(m, "BaseMetadataBlock")
         .def(py::init<>())
         .def_readonly("encoding_type", &binarize::BaseMetadataBlock::encoding_type)
         .def_readonly("raw_data", &binarize::BaseMetadataBlock::raw_data)
-        .def("write", [](binarize::BaseMetadataBlock &self, FILEWrapper &file, core::EBlockType block_type, core::ECompressionType compression_type, core::Checksum& checksum){
-                return self.write(*file.fptr, block_type, compression_type, checksum);
-            }, R"pbdoc(write block header and data in encoded format)pbdoc", py::arg("file"), py::arg("block_type"), py::arg("compression_type"), py::arg("checksum"))
         .def("read_data", [](binarize::BaseMetadataBlock &self, FILEWrapper &file, const core::BlockHeader& block_header) {
                 return self.read_data(*file.fptr, block_header);
             }, R"pbdoc(read block data in encoded format)pbdoc", py::arg("file"), py::arg("block_header"));
