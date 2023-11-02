@@ -28,6 +28,14 @@ if (CMAKE_TOOLCHAIN_FILE)
     list(APPEND _build_args "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 endif ()
 
+if (${PROJECT_NAME}_DEPS_SHARED) # if deps needs to be built as shared libs
+    list(APPEND _build_args "-DBUILD_SHARED_LIBS:BOOL=ON")
+endif ()
+
+if (BUILD_SHARED_LIBS) # forward if PIC is needed (static deps but project is shared library)
+    list(APPEND _build_args "-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON")
+endif ()
+
 set(_build_dir "${CMAKE_CURRENT_LIST_DIR}/build-${${PROJECT_NAME}_DEPS_PRESET}")
 if (${PROJECT_NAME}_DEPS_BUILD_DIR)
     set(_build_dir "${${PROJECT_NAME}_DEPS_BUILD_DIR}")

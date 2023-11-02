@@ -19,6 +19,7 @@ option(${PROJECT_NAME}_BUILD_SANITIZERS "Turn on sanitizers" OFF)
 # Dependency build management
 option(${PROJECT_NAME}_BUILD_DEPS "Build dependencies before the project" OFF)
 option(${PROJECT_NAME}_DEPS_OUTPUT_QUIET "Don't print build output for dependencies" ON)
+option(${PROJECT_NAME}_DEPS_SHARED "Build dependencies as shared libraries" OFF)
 set(${PROJECT_NAME}_DEPS_PRESET "default" CACHE STRING "Preset of the dependencies when ${PROJECT_NAME}_BUILD_DEPS is ON")
 set(${PROJECT_NAME}_DEPS_BUILD_DIR "" CACHE PATH "Binary dir of the dependencies build when ${PROJECT_NAME}_BUILD_DEPS is ON")
 
@@ -60,6 +61,10 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.rc.in
   ${PROJECT_BINARY_DIR}/version.rc
   @ONLY)
+
+if (CMAKE_COMPILER_IS_GNUCXX)
+    add_compile_options(-fvisibility=hidden)
+endif ()
 
 add_subdirectory(${_srcloc}/core)
 
