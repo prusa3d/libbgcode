@@ -45,7 +45,7 @@ set(supported_packages Boost heatshrink Catch2 ZLIB pybind11)
 
 include(CMakeDependentOption)
 option(${PROJECT_NAME}_SELECT_ALL "Choose all external projects to be selected (create build target for them)." ON)
-option(${PROJECT_NAME}_BUILD_ALL "Choose all external projects to be built." ON)
+option(${PROJECT_NAME}_BUILD_ALL "Choose all external projects to be built." OFF)
 
 find_package(Git REQUIRED)
 

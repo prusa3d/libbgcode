@@ -41,10 +41,12 @@
         {
             "name": "default",
             "jobs": 1,
-            "configurePreset": "default"
+            "configurePreset": "default",
+            "configuration": "Release"
         },
         {
             "name": "wasm",
+            "configuration": "MinSizeRel",
             "inherits": "default",
             "configurePreset": "wasm"
         },

@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(heatshrink C VERSION 0.4.1)
+project(heatshrink LANGUAGES C VERSION 0.4.1)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 add_library(${PROJECT_NAME} heatshrink_decoder.c heatshrink_encoder.c)
 add_library(${PROJECT_NAME}_dynalloc heatshrink_decoder.c heatshrink_encoder.c)
@@ -25,7 +26,7 @@ if (UNIX)
   set_target_properties(${PROJECT_NAME}_cmd PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 endif ()
 
-foreach (tgt IN ${PROJECT_NAME} ${PROJECT_NAME}_dynalloc)
+foreach (tgt ${PROJECT_NAME} ${PROJECT_NAME}_dynalloc)
   set_target_properties(${tgt}
     PROPERTIES
     VERSION ${PROJECT_VERSION}
