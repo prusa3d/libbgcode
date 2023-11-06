@@ -44,7 +44,7 @@ struct FILEWrapper {
     ~FILEWrapper() { close(); }
 };
 
-PYBIND11_MODULE(pybgcode, m) {
+PYBIND11_MODULE(MODULE_NAME, m) {
     using namespace bgcode;
 
     static constexpr size_t MaxBuffSz = 2048;

@@ -39,33 +39,34 @@ endif()
 
 find_package(Boost ${Boost_VER} REQUIRED COMPONENTS nowide)
 
-pybind11_add_module(pybgcode MODULE pybgcode.cpp)
+pybind11_add_module(_bgcode MODULE pybgcode.cpp)
 
-target_link_libraries(pybgcode PRIVATE LibBGCode::bgcode_convert Boost::nowide)
+target_link_libraries(_bgcode PRIVATE LibBGCode::bgcode_convert Boost::nowide)
 
-target_compile_definitions(pybgcode PRIVATE
-    MODULE_NAME=pybgcode
+target_compile_definitions(_bgcode PRIVATE
+    MODULE_NAME=$<TARGET_FILE_BASE_NAME:_bgcode>
     VERSION_INFO="${PY_FULL_VERSION}"
 )
 
 # Hide all symbols by default (including external libraries on Linux)
-set_target_properties(pybgcode PROPERTIES
+set_target_properties(_bgcode PROPERTIES
     CXX_VISIBILITY_PRESET "hidden"
-    VISIBILITY_INLINES_HIDDEN true)
+    VISIBILITY_INLINES_HIDDEN true
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/pybgcode)
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    target_link_options(pybgcode PRIVATE "LINKER:--exclude-libs,ALL")
+    target_link_options(_bgcode PRIVATE "LINKER:--exclude-libs,ALL")
 endif()
 
 if (PY_BUILD_CMAKE_MODULE_NAME)
     # Install the Python module
-    install(TARGETS pybgcode
+    install(TARGETS _bgcode
             EXCLUDE_FROM_ALL
             COMPONENT python_modules
             DESTINATION ${PY_BUILD_CMAKE_MODULE_NAME})
     # Install the debug file for the Python module (Windows only)
     if (WIN32)
-        install(FILES $<TARGET_PDB_FILE:pybgcode>
+        install(FILES $<TARGET_PDB_FILE:_bgcode>
                 EXCLUDE_FROM_ALL
                 COMPONENT python_modules
                 DESTINATION ${PY_BUILD_CMAKE_MODULE_NAME}
@@ -80,8 +81,11 @@ set (TEST_DATA_DIR ${CMAKE_CURRENT_LIST_DIR}/../tests/data)
 # Prepare the test files to be available
 configure_file(${TEST_DATA_DIR}/mini_cube_b_ref.gcode ${CMAKE_CURRENT_BINARY_DIR}/test.gcode)
 
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/pybgcode DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 # Define the test for ctest and inject the correct PYTHONPATH env var for its runtime
 add_test(NAME test_pybgcode COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_convert.py CONFIGURATIONS ${CMAKE_CONFIGURATION_TYPES})
-set_property(TEST test_pybgcode PROPERTY ENVIRONMENT PYTHONPATH=$<TARGET_FILE_DIR:pybgcode>)
+#$<TARGET_FILE_DIR:_bgcode>:
+set_property(TEST test_pybgcode PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
 
-add_custom_target(build_and_test COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS pybgcode)
+add_custom_target(build_and_test COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS _bgcode)
