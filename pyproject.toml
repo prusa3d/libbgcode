@@ -19,7 +19,7 @@ requires-python = ">=3.7"
 "Bug Tracker" = "https://github.com/prusa3d/libbgcode/issues"
 
 [build-system]
-requires = ["py-build-cmake~=0.1.8"]
+requires = ["py-build-cmake~=0.1.8", "pytest"]
 build-backend = "py_build_cmake.build"
 
 [tool.py-build-cmake.module] # Where to find the Python module to package
