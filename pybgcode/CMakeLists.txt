@@ -82,10 +82,14 @@ set (TEST_DATA_DIR ${CMAKE_CURRENT_LIST_DIR}/../tests/data)
 configure_file(${TEST_DATA_DIR}/mini_cube_b_ref.gcode ${CMAKE_CURRENT_BINARY_DIR}/test.gcode)
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/pybgcode DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tests DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # Define the test for ctest and inject the correct PYTHONPATH env var for its runtime
-add_test(NAME test_pybgcode COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_convert.py CONFIGURATIONS ${CMAKE_CONFIGURATION_TYPES})
+add_test(NAME test_pybgcode
+         COMMAND ${Python3_EXECUTABLE} -m pytest -v tests/test_convert.py
+         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+         CONFIGURATIONS ${CMAKE_CONFIGURATION_TYPES})
 #$<TARGET_FILE_DIR:_bgcode>:
-set_property(TEST test_pybgcode PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
+#set_property(TEST test_pybgcode PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
 
 add_custom_target(build_and_test COMMAND ${CMAKE_CTEST_COMMAND} --vebose DEPENDS _bgcode)
