@@ -88,4 +88,4 @@ add_test(NAME test_pybgcode COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE
 #$<TARGET_FILE_DIR:_bgcode>:
 set_property(TEST test_pybgcode PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
 
-add_custom_target(build_and_test COMMAND ${CMAKE_CTEST_COMMAND} --vebose DEPENDS _bgcode)
+add_custom_target(build_and_test COMMAND ${CMAKE_CTEST_COMMAND} --verbose DEPENDS _bgcode)
