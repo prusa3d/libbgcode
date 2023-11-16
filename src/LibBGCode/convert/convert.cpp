@@ -203,6 +203,7 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
     static constexpr const std::string_view FilamentCost = "filament cost"sv;
     static constexpr const std::string_view TotalFilamentUsedG = "total filament used [g]"sv;
     static constexpr const std::string_view TotalFilamentCost = "total filament cost"sv;
+    static constexpr const std::string_view TotalFilamentUsedWipeTower = "total filament used for wipe tower [g]"sv;
     static constexpr const std::string_view EstimatedPrintingTimeSilent = "estimated printing time (silent mode)"sv;
     static constexpr const std::string_view Estimated1stLayerPrintingTimeNormal = "estimated first layer printing time (normal mode)"sv;
     static constexpr const std::string_view Estimated1stLayerPrintingTimeSilent = "estimated first layer printing time (silent mode)"sv;
@@ -262,6 +263,7 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
     std::string filament_cost;
     std::string total_filament_used_g;
     std::string total_filament_cost;
+    std::string total_filament_used_wipe_tower;
     std::string estimated_printing_time_silent;
     std::string estimated_1st_layer_printing_time_normal;
     std::string estimated_1st_layer_printing_time_silent;
@@ -339,6 +341,7 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
         if (collect_metadata(FilamentCost, filament_cost)) return;
         if (collect_metadata(TotalFilamentUsedG, total_filament_used_g)) return;
         if (collect_metadata(TotalFilamentCost, total_filament_cost)) return;
+        if (collect_metadata(TotalFilamentUsedWipeTower, total_filament_used_wipe_tower)) return;
         if (collect_metadata(EstimatedPrintingTimeSilent, estimated_printing_time_silent)) return;
         if (collect_metadata(Estimated1stLayerPrintingTimeNormal, estimated_1st_layer_printing_time_normal)) return;
         if (collect_metadata(Estimated1stLayerPrintingTimeSilent, estimated_1st_layer_printing_time_silent)) return;
@@ -522,6 +525,7 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
     append_metadata(binary_data.print_metadata.raw_data, std::string(FilamentCost), filament_cost);
     append_metadata(binary_data.print_metadata.raw_data, std::string(TotalFilamentUsedG), total_filament_used_g);
     append_metadata(binary_data.print_metadata.raw_data, std::string(TotalFilamentCost), total_filament_cost);
+    append_metadata(binary_data.print_metadata.raw_data, std::string(TotalFilamentUsedWipeTower), total_filament_used_wipe_tower);
     append_metadata(binary_data.print_metadata.raw_data, std::string(EstimatedPrintingTimeNormal), estimated_printing_time_normal);
     append_metadata(binary_data.print_metadata.raw_data, std::string(EstimatedPrintingTimeSilent), estimated_printing_time_silent);
     append_metadata(binary_data.print_metadata.raw_data, std::string(Estimated1stLayerPrintingTimeNormal), estimated_1st_layer_printing_time_normal);
