@@ -8,6 +8,8 @@ project(LibBGCode VERSION ${LibBGCode_VERSION})
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(ZLIB REQUIRED "1.0")
+
 set(_libname ${PROJECT_NAME})
 string(TOLOWER ${_libname} _libname)
 string(REPLACE "lib" "" _libname ${_libname})
@@ -103,6 +105,8 @@ if(${PROJECT_NAME}_BUILD_TESTS)
     enable_testing ()
     add_subdirectory(tests)
 endif()
+
+find_package(ZLIB REQUIRED "1.0")
 
 # Create and install the CMake config script
 include(CMakePackageConfigHelpers)
