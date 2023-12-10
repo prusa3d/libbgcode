@@ -106,8 +106,6 @@ if(${PROJECT_NAME}_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
-find_package(ZLIB REQUIRED "1.0")
-
 # Create and install the CMake config script
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
@@ -120,6 +118,8 @@ install(TARGETS ${_libname}
     EXPORT ${PROJECT_NAME}{_highest_comp}Targets
     INCLUDES DESTINATION include/${PROJECT_NAME}
 )
+
+find_package(ZLIB REQUIRED "1.0")
 
 foreach(_comp ${_selected_components})
     # Install targets and headers
