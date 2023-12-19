@@ -155,7 +155,7 @@ PYBIND11_MODULE(MODULE_NAME, m) {
     py::enum_<core::EBlockType>(m, "EBlockType")
         .value("FileMetadata", core::EBlockType::FileMetadata)
         .value("GCode", core::EBlockType::GCode)
-        .value("SlicerMetadata,", core::EBlockType::SlicerMetadata)
+        .value("SlicerMetadata", core::EBlockType::SlicerMetadata)
         .value("PrinterMetadata", core::EBlockType::PrinterMetadata)
         .value("PrintMetadata", core::EBlockType::PrintMetadata)
         .value("Thumbnail", core::EBlockType::Thumbnail);

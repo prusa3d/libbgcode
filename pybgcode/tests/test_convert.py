@@ -8,6 +8,7 @@ from pybgcode import (
     EResult,
     EThumbnailFormat,
     read_thumbnails,
+    read_metadata
 )
 
 # pylint: disable=missing-function-docstring
@@ -15,6 +16,26 @@ TEST_GCODE = "test.gcode"
 TEST_REVERSE_GCODE = "test_reverse.gcode"
 TEST_BGCODE = "test.bgcode"
 TEST_THUMBNAILS = 2
+
+TEST_PRINTER_METADATA = {'printer_model': 'MINI', 'filament_type': 'PETG',
+                         'nozzle_diameter': '0.4', 'bed_temperature': '90',
+                         'brim_width': '0', 'fill_density': '15%',
+                         'layer_height': '0.15', 'temperature': '240',
+                         'ironing': '0', 'support_material': '0',
+                         'max_layer_z': '18.05', 'extruder_colour': '""',
+                         'filament used [mm]': '986.61',
+                         'filament used [cm3]': '2.37',
+                         'filament used [g]': '3.01', 'filament cost': '0.08',
+                         'estimated printing time (normal mode)': '32m 6s'}
+TEST_FILE_METADATA = {'Producer': 'PrusaSlicer 2.6.0'}
+TEST_PRINT_METADATA = {
+    'filament used [mm]': '986.61', 'filament used [cm3]': '2.37',
+    'filament used [g]': '3.01', 'filament cost': '0.08',
+    'total filament used [g]': '3.01', 'total filament cost': '0.08',
+    'estimated printing time (normal mode)': '32m 6s',
+    'estimated first layer printing time (normal mode)': '1m 8s'}
+TEST_LEN_SLICER_METADATA = 302
+
 
 
 def get_thumbnail_extension(format_id):
@@ -53,6 +74,14 @@ def test_main():
     thumb_f = pybgcode.open(TEST_BGCODE, "rb")
     thumbnails = read_thumbnails(thumb_f)
     assert len(thumbnails) == TEST_THUMBNAILS
+    printer_metadata = read_metadata(thumb_f)
+    assert printer_metadata == TEST_PRINTER_METADATA
+    file_metadata = read_metadata(thumb_f, 'file')
+    assert file_metadata == TEST_FILE_METADATA
+    print_metadata = read_metadata(thumb_f, 'print')
+    assert print_metadata == TEST_PRINT_METADATA
+    slicer_metadata = read_metadata(thumb_f, 'slicer')
+    assert len(slicer_metadata) == TEST_LEN_SLICER_METADATA
     pybgcode.close(thumb_f)
 
     # write thumbnails to png files
