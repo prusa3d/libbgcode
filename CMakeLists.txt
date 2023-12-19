@@ -117,6 +117,8 @@ install(TARGETS ${_libname}
     INCLUDES DESTINATION include/${PROJECT_NAME}
 )
 
+find_package(ZLIB REQUIRED "1.0")
+
 foreach(_comp ${_selected_components})
     # Install targets and headers
     string(TOLOWER ${_comp} _comp_lower)
