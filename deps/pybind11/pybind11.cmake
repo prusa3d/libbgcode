@@ -1,6 +1,6 @@
 set(_exclude_from_all OFF)
 
-if (NOT ${PROJECT_NAME}_SELECT_pybind11)
+if (NOT ${PROJECT_NAME}_BUILD_pybind11 AND NOT ${PROJECT_NAME}_BUILD_ALL)
   set(_exclude_from_all ON)
 endif ()
 

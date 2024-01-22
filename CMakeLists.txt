@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.12)
-project(LibBGCode VERSION 0.1)
+
+include(cmake/ProjectVersion.cmake)
+
+project(LibBGCode VERSION ${LibBGCode_VERSION})
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -11,10 +14,12 @@ string(REPLACE "lib" "" _libname ${_libname})
 
 option(${PROJECT_NAME}_BUILD_TESTS "Build unit tests" ON)
 option(${PROJECT_NAME}_BUILD_COMPONENT_Binarize "Include Binarize component in the library" ON)
+option(${PROJECT_NAME}_BUILD_SANITIZERS "Turn on sanitizers" OFF)
 
 # Dependency build management
 option(${PROJECT_NAME}_BUILD_DEPS "Build dependencies before the project" OFF)
 option(${PROJECT_NAME}_DEPS_OUTPUT_QUIET "Don't print build output for dependencies" ON)
+option(${PROJECT_NAME}_DEPS_SHARED "Build dependencies as shared libraries" OFF)
 set(${PROJECT_NAME}_DEPS_PRESET "default" CACHE STRING "Preset of the dependencies when ${PROJECT_NAME}_BUILD_DEPS is ON")
 set(${PROJECT_NAME}_DEPS_BUILD_DIR "" CACHE PATH "Binary dir of the dependencies build when ${PROJECT_NAME}_BUILD_DEPS is ON")
 
@@ -37,9 +42,6 @@ if (EMSCRIPTEN)
                           "${PROJECT_NAME}_BUILD_COMPONENT_Convert" OFF)
 endif ()
 
-cmake_dependent_option(${PROJECT_NAME}_BUILD_PYTHON_BINDING "Include bgcode wasm module in the build" OFF
-                       "${PROJECT_NAME}_BUILD_COMPONENT_Convert" OFF)
-
 set(_selected_components "Core")
 set(_selected_libs "${_libname}_core")
 set(_highest_comp "Core")
@@ -55,8 +57,13 @@ include(GenerateExportHeader)
 
 set(_srcloc src/${PROJECT_NAME})
 
-if (${PROJECT_NAME}_BUILD_PYTHON_BINDING)
-    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.rc.in
+  ${PROJECT_BINARY_DIR}/version.rc
+  @ONLY)
+
+if (CMAKE_COMPILER_IS_GNUCXX)
+    add_compile_options(-fvisibility=hidden)
 endif ()
 
 add_subdirectory(${_srcloc}/core)
@@ -90,7 +97,6 @@ endif()
 
 if (${PROJECT_NAME}_BUILD_PYTHON_BINDING)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-    add_subdirectory(${_srcloc}/python)
 endif ()
 
 if(${PROJECT_NAME}_BUILD_TESTS)
@@ -115,6 +121,11 @@ foreach(_comp ${_selected_components})
     # Install targets and headers
     string(TOLOWER ${_comp} _comp_lower)
     set(_export_targets ${_libname}_${_comp_lower})
+
+    set_target_properties(${_libname}_${_comp_lower}
+        PROPERTIES
+        VERSION ${PROJECT_VERSION}
+        SOVERSION ${PROJECT_VERSION})
 
     install(TARGETS ${_export_targets}
         EXPORT ${PROJECT_NAME}${_comp}Targets

@@ -8,6 +8,8 @@ The new binarized G-code file consists of a file header followed by an ordered s
 6. Slicer Metadata Block
 7. G-code Blocks
 
+All of the multi-byte integers are encoded in little-endian byte ordering.
+
 ## File header
 
 The file header contains the following data:

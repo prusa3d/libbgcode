@@ -45,3 +45,8 @@ See [BUILDING](doc/building.md) for building instructions.
 # Command line application
 
 See [BGCODE](doc/bgcode.md) for instructions.
+
+# References
+
+We would like to thank Scott Vokes (@atomicobject) for his work on heatshrink and
+Scott Mudge (@scottmudge) for developing and maintaining MeatPack.

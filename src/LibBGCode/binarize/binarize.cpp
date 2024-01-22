@@ -1,6 +1,8 @@
 #include "binarize.hpp"
 #include "meatpack.hpp"
 
+#include "core/core_impl.hpp"
+
 extern "C" {
 #include <heatshrink/heatshrink_encoder.h>
 #include <heatshrink/heatshrink_decoder.h>
@@ -11,22 +13,36 @@ extern "C" {
 #include <cassert>
 
 namespace bgcode {
+
 using namespace core;
+
 namespace binarize {
 
-static bool write_to_file(FILE& file, const void* data, size_t data_size)
+template<class T>
+static bool write_to_file(FILE& file, const T* data, size_t data_size)
 {
-    const size_t wsize = fwrite(data, 1, data_size, &file);
+    const size_t wsize = fwrite(static_cast<const void*>(data), 1, data_size, &file);
     return !ferror(&file) && wsize == data_size;
 }
 
-static bool read_from_file(FILE& file, void* data, size_t data_size)
+template<class T>
+static bool read_from_file(FILE& file, T *data, size_t data_size)
 {
-    const size_t rsize = fread(data, 1, data_size, &file);
+    static_assert(!std::is_const_v<T>, "Type of output buffer cannot be const!");
+
+    const size_t rsize = fread(static_cast<void *>(data), 1, data_size, &file);
     return !ferror(&file) && rsize == data_size;
 }
 
-static std::vector<uint8_t> encode(const void* data, size_t data_size)
+void update_checksum(Checksum& checksum, const ThumbnailBlock &th)
+{
+    checksum.append(th.params.format);
+    checksum.append(th.params.width);
+    checksum.append(th.params.height);
+    checksum.append(th.data);
+}
+
+static std::vector<uint8_t> encode(const std::byte* data, size_t data_size)
 {
     std::vector<uint8_t> ret(data_size);
     memcpy(ret.data(), data, data_size);
@@ -135,7 +151,7 @@ static bool decode_gcode(const std::vector<uint8_t>& src, std::string& dst, EGCo
     return true;
 }
 
-static bool compress(const std::vector<uint8_t>& src, std::vector<uint8_t>& dst, ECompressionType compression_type)
+static bool compress(std::vector<uint8_t>& src, std::vector<uint8_t>& dst, ECompressionType compression_type)
 {
     switch (compression_type)
     {
@@ -147,8 +163,8 @@ static bool compress(const std::vector<uint8_t>& src, std::vector<uint8_t>& dst,
         std::vector<uint8_t> temp_buffer(BUFSIZE);
 
         z_stream strm{};
-        strm.next_in = const_cast<uint8_t*>(src.data());
-        strm.avail_in = (uInt)src.size();
+        strm.next_in = static_cast<Bytef*>(src.data());
+        strm.avail_in = static_cast<uInt>(src.size());
         strm.next_out = temp_buffer.data();
         strm.avail_out = BUFSIZE;
 
@@ -203,7 +219,7 @@ static bool compress(const std::vector<uint8_t>& src, std::vector<uint8_t>& dst,
         const size_t max_compressed_size = src_size + (src_size >> 2);
         dst.resize(max_compressed_size);
 
-        uint8_t* buf = const_cast<uint8_t*>(src.data());
+        uint8_t* buf = src.data();
         uint8_t* outbuf = dst.data();
 
         // compress data
@@ -372,18 +388,19 @@ static bool uncompress(const std::vector<uint8_t>& src, std::vector<uint8_t>& ds
     return true;
 }
 
-EResult BaseMetadataBlock::write(FILE& file, EBlockType block_type, ECompressionType compression_type,
-    Checksum& checksum) const
+
+// write block header and data in encoded format
+core::EResult write(const BaseMetadataBlock &block, FILE& file, core::EBlockType block_type, core::ECompressionType compression_type, core::Checksum &checksum)
 {
-    if (encoding_type > metadata_encoding_types_count())
+    if (block.encoding_type > metadata_encoding_types_count())
         return EResult::InvalidMetadataEncodingType;
 
     BlockHeader block_header((uint16_t)block_type, (uint16_t)compression_type, (uint32_t)0);
     std::vector<uint8_t> out_data;
-    if (!raw_data.empty()) {
+    if (!block.raw_data.empty()) {
         // process payload encoding
         std::vector<uint8_t> uncompressed_data;
-        if (!encode_metadata(raw_data, uncompressed_data, (EMetadataEncodingType)encoding_type))
+        if (!encode_metadata(block.raw_data, uncompressed_data, (EMetadataEncodingType)block.encoding_type))
             return EResult::MetadataEncodingError;
         // process payload compression
         block_header.uncompressed_size = (uint32_t)uncompressed_data.size();
@@ -403,21 +420,22 @@ EResult BaseMetadataBlock::write(FILE& file, EBlockType block_type, ECompression
         return res;
 
     // write block payload
-    if (!write_to_file(file, (const void*)&encoding_type, sizeof(encoding_type)))
+    if (!write_to_file(file, &block.encoding_type, sizeof(block.encoding_type)))
         return EResult::WriteError;
     if (!out_data.empty()) {
-        if (!write_to_file(file, (const void*)out_data.data(), out_data.size()))
+        if (!write_to_file(file, out_data.data(), out_data.size()))
             return EResult::WriteError;
     }
 
     if (checksum.get_type() != EChecksumType::None) {
         // update checksum with block header
-        block_header.update_checksum(checksum);
+        update_checksum(checksum, block_header);
         // update checksum with block payload
-        checksum.append(encoding_type);
+        checksum.append(block.encoding_type);
         if (!out_data.empty())
-            checksum.append(out_data);
+            checksum.append(static_cast<unsigned char*>(out_data.data()), out_data.size());
     }
+
     return EResult::Success;
 }
 
@@ -455,7 +473,7 @@ EResult FileMetadataBlock::write(FILE& file, ECompressionType compression_type, 
     Checksum cs(checksum_type);
 
     // write block header, payload
-    EResult res = BaseMetadataBlock::write(file, EBlockType::FileMetadata, compression_type, cs);
+    EResult res = binarize::write(*this, file, EBlockType::FileMetadata, compression_type, cs);
     if (res != EResult::Success)
         // propagate error
         return res;
@@ -492,7 +510,7 @@ EResult PrintMetadataBlock::write(FILE& file, ECompressionType compression_type,
     Checksum cs(checksum_type);
 
     // write block header, payload
-    EResult res = BaseMetadataBlock::write(file, EBlockType::PrintMetadata, compression_type, cs);
+    EResult res = binarize::write(*this, file, EBlockType::PrintMetadata, compression_type, cs);
     if (res != EResult::Success)
         // propagate error
         return res;
@@ -529,7 +547,7 @@ EResult PrinterMetadataBlock::write(FILE& file, ECompressionType compression_typ
     Checksum cs(checksum_type);
 
     // write block header, payload
-    EResult res = BaseMetadataBlock::write(file, EBlockType::PrinterMetadata, compression_type, cs);
+    EResult res = binarize::write(*this, file, EBlockType::PrinterMetadata, compression_type, cs);
     if (res != EResult::Success)
         // propagate error
         return res;
@@ -573,7 +591,7 @@ EResult ThumbnailBlock::write(FILE& file, EChecksumType checksum_type)
         return EResult::InvalidThumbnailDataSize;
 
     // write block header
-    const BlockHeader block_header((uint16_t)EBlockType::Thumbnail, (uint16_t)ECompressionType::None, (uint32_t)data.size());
+    BlockHeader block_header((uint16_t)EBlockType::Thumbnail, (uint16_t)ECompressionType::None, (uint32_t)data.size());
     EResult res = block_header.write(file);
     if (res != EResult::Success)
         // propagate error
@@ -585,15 +603,15 @@ EResult ThumbnailBlock::write(FILE& file, EChecksumType checksum_type)
         return res;
     }
 
-    if (!write_to_file(file, (const void*)data.data(), data.size()))
+    if (!write_to_file(file, data.data(), data.size()))
         return EResult::WriteError;
 
     if (checksum_type != EChecksumType::None) {
         Checksum cs(checksum_type);
         // update checksum with block header
-        block_header.update_checksum(cs);
+        update_checksum(cs, block_header);
         // update checksum with block payload
-        update_checksum(cs);
+        update_checksum(cs, *this);
         // write block checksum
         res = cs.write(file);
         if (res != EResult::Success)
@@ -635,14 +653,6 @@ EResult ThumbnailBlock::read_data(FILE& file, const FileHeader& file_header, con
     return EResult::Success;
 }
 
-void ThumbnailBlock::update_checksum(Checksum& checksum) const
-{
-    checksum.append(params.format);
-    checksum.append(params.width);
-    checksum.append(params.height);
-    checksum.append(data);
-}
-
 EResult GCodeBlock::write(FILE& file, ECompressionType compression_type, EChecksumType checksum_type) const
 {
     if (encoding_type > gcode_encoding_types_count())
@@ -673,10 +683,10 @@ EResult GCodeBlock::write(FILE& file, ECompressionType compression_type, EChecks
         return res;
 
     // write block payload
-    if (!write_to_file(file, (const void*)&encoding_type, sizeof(encoding_type)))
+    if (!write_to_file(file, &encoding_type, sizeof(encoding_type)))
         return EResult::WriteError;
     if (!out_data.empty()) {
-        if (!write_to_file(file, (const void*)out_data.data(), out_data.size()))
+        if (!write_to_file(file, out_data.data(), out_data.size()))
             return EResult::WriteError;
     }
 
@@ -684,11 +694,13 @@ EResult GCodeBlock::write(FILE& file, ECompressionType compression_type, EChecks
     if (checksum_type != EChecksumType::None) {
         Checksum cs(checksum_type);
         // update checksum with block header
-        block_header.update_checksum(cs);
+        update_checksum(cs, block_header);
         // update checksum with block payload
-        cs.append(encode((const void*)&encoding_type, sizeof(encoding_type)));
+        std::vector<uint8_t> data_to_encode =
+            encode(reinterpret_cast<const std::byte*>(&encoding_type), sizeof(encoding_type));
+        cs.append(data_to_encode.data(), data_to_encode.size());
         if (!out_data.empty())
-            cs.append(out_data);
+            cs.append(static_cast<unsigned char *>(out_data.data()), out_data.size());
         res = cs.write(file);
         if (res != EResult::Success)
             // propagate error
@@ -740,7 +752,7 @@ EResult SlicerMetadataBlock::write(FILE& file, ECompressionType compression_type
     Checksum cs(checksum_type);
 
     // write block header, payload
-    EResult res = BaseMetadataBlock::write(file, EBlockType::SlicerMetadata, compression_type, cs);
+    EResult res = binarize::write(*this, file, EBlockType::SlicerMetadata, compression_type, cs);
     if (res != EResult::Success)
         // propagate error
         return res;

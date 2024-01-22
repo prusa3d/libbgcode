@@ -20,15 +20,18 @@ struct Parameter
 };
 
 using namespace std::literals;
+
+static const BinarizerConfig DefaultBinarizerConfig;
+
 static const std::vector<Parameter> parameters = {
-    { "checksum"sv, { "None"sv, "CRC32"sv }, (int)BinarizerConfig().checksum },
-    { "file_metadata_compression"sv, { "None"sv, "Deflate"sv, "Heatshrink_11_4"sv, "Heatshrink_12_4"sv }, (int)BinarizerConfig().compression.file_metadata },
-    { "print_metadata_compression"sv, { "None"sv, "Deflate"sv, "Heatshrink_11_4"sv, "Heatshrink_12_4"sv }, (int)BinarizerConfig().compression.print_metadata },
-    { "printer_metadata_compression"sv, { "None"sv, "Deflate"sv, "Heatshrink_11_4"sv, "Heatshrink_12_4"sv }, (int)BinarizerConfig().compression.printer_metadata },
-    { "slicer_metadata_compression"sv, { "None"sv, "Deflate"sv, "Heatshrink_11_4"sv, "Heatshrink_12_4"sv }, (int)BinarizerConfig().compression.slicer_metadata },
-    { "gcode_compression"sv, { "None"sv, "Deflate"sv, "Heatshrink_11_4"sv, "Heatshrink_12_4"sv }, (int)BinarizerConfig().compression.gcode },
-    { "gcode_encoding"sv, { "None"sv, "MeatPack"sv, "MeatPackComments"sv }, (int)BinarizerConfig().gcode_encoding },
-    { "metadata_encoding"sv, { "INI"sv }, (int)BinarizerConfig().metadata_encoding }
+    { "checksum"sv, { "None"sv, "CRC32"sv }, (size_t) DefaultBinarizerConfig.checksum },
+    { "file_metadata_compression"sv, { "None"sv, "Deflate"sv, "Heatshrink_11_4"sv, "Heatshrink_12_4"sv }, (size_t)DefaultBinarizerConfig.compression.file_metadata },
+    { "print_metadata_compression"sv, { "None"sv, "Deflate"sv, "Heatshrink_11_4"sv, "Heatshrink_12_4"sv }, (size_t)DefaultBinarizerConfig.compression.print_metadata },
+    { "printer_metadata_compression"sv, { "None"sv, "Deflate"sv, "Heatshrink_11_4"sv, "Heatshrink_12_4"sv }, (size_t)DefaultBinarizerConfig.compression.printer_metadata },
+    { "slicer_metadata_compression"sv, { "None"sv, "Deflate"sv, "Heatshrink_11_4"sv, "Heatshrink_12_4"sv }, (size_t)DefaultBinarizerConfig.compression.slicer_metadata },
+    { "gcode_compression"sv, { "None"sv, "Deflate"sv, "Heatshrink_11_4"sv, "Heatshrink_12_4"sv }, (size_t)DefaultBinarizerConfig.compression.gcode },
+    { "gcode_encoding"sv, { "None"sv, "MeatPack"sv, "MeatPackComments"sv }, (size_t)DefaultBinarizerConfig.gcode_encoding },
+    { "metadata_encoding"sv, { "INI"sv }, (size_t) DefaultBinarizerConfig.metadata_encoding }
 };
 
 class ScopedFile

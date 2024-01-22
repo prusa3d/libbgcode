@@ -18,6 +18,7 @@ add_library(${_libname}_binarize
     binarize.hpp
     meatpack.cpp
     meatpack.hpp
+    ${PROJECT_BINARY_DIR}/version.rc
     # Add more source files here if needed
 )
 
