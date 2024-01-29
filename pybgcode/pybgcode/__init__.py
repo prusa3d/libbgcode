@@ -20,6 +20,7 @@ from ._bgcode import (  # type: ignore
     get_config,
     is_open,
     open,
+    memopen,
     read_header,
     read_next_block_header,
     rewind,
