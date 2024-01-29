@@ -96,6 +96,27 @@ PYBIND11_MODULE(MODULE_NAME, m) {
                                             py::arg("name"),
                                             py::arg("mode"));
 
+// Opening a byte buffer in python. This will only be available on Unix platforms
+#ifndef _MSC_VER
+    m.def("memopen", [](py::bytes buffer) {
+            std::string_view cbuf(buffer);
+
+            // Ugly but will work, despite the const_cast, the buffer will not
+            // be modified. Open mode is "rb"
+            FILE *fptr = fmemopen(const_cast<void *>(static_cast<const void *>(cbuf.data())),
+                                  cbuf.size(),
+                                  "rb");
+
+            if (!fptr) {
+                throw std::runtime_error(std::strerror(errno));
+            }
+
+            return std::make_unique<FILEWrapper>(fptr);
+        },
+        R"pbdoc(Open a gcode memory buffer to process using pybgcode)pbdoc",
+        py::arg("buffer"));
+#endif
+
     m.def("close", [](FILEWrapper &f) { f.close(); },
         R"pbdoc(Close a previously opened file)pbdoc", py::arg("file"));
     m.def("is_open", [](const FILEWrapper &f) { return f.fptr != nullptr; },
