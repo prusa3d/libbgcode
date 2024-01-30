@@ -201,9 +201,9 @@ PYBIND11_MODULE(MODULE_NAME, m) {
         .def(py::init<>())
         .def_readonly("type", &core::BlockHeader::type)
         .def_readonly("compression", &core::BlockHeader::compression)
-        .def_readonly("uncompressed_size", &core::BlockHeader::type)
+        .def_readonly("uncompressed_size", &core::BlockHeader::uncompressed_size)
         .def_readonly("compressed_size", &core::BlockHeader::compressed_size)
-        .def("get_size()", &core::BlockHeader::get_size)
+        .def("get_size", &core::BlockHeader::get_size)
         .def("read", [](core::BlockHeader &self, FILEWrapper &file) {
             return self.read(*file.fptr);
         })
