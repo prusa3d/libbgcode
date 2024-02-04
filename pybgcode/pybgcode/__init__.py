@@ -135,3 +135,68 @@ def read_metadata(gcodefile: FILEWrapper, type: str = 'printer'):
 
     return get_metadata(gcodefile, header, block_header, metadata_block_class)
 
+
+def get_next_block_header(wrapper, header, block_header):
+    res = read_next_block_header(wrapper, header,
+                                 block_header)
+    if res != EResult.Success:
+        raise ResultError(res)
+    return block_header
+
+
+def read_connect_metadata(wrapper: FILEWrapper):
+    """Read metadata from binary gcode file."""
+    blocks_we_need = ['print', 'thumbnails', 'printer']
+    blocks_we_have = {'print': None, 'thumbnails': [],
+                      'printer': None}
+
+    # read file header
+    res, header = get_header(wrapper)
+    block_header = BlockHeader()
+    while True:
+        # read next block header
+        block_header = get_next_block_header(wrapper, header, block_header)
+        if block_header.type == 0:
+            # file metadata - we do not need them
+            metadata_block = FileMetadataBlock()
+            res = metadata_block.read_data(
+                wrapper, header, block_header)
+            if res != EResult.Success:
+                raise ResultError(res)
+        elif block_header.type in (1, 2):
+            # GCode block or Slicer metadata block - no more metadata
+            return blocks_we_have
+        elif block_header.type == 3:
+            # printer metadata - we need them
+            metadata_block = PrinterMetadataBlock()
+            res = metadata_block.read_data(
+                wrapper, header, block_header)
+            if res != EResult.Success:
+                raise ResultError(res)
+            blocks_we_have['printer'] = dict(
+                metadata_block.raw_data) if metadata_block else None
+        elif block_header.type == 4:
+            # print metdata - we need them
+            metadata_block = PrintMetadataBlock()
+            res = metadata_block.read_data(
+                wrapper, header, block_header)
+            if res != EResult.Success:
+                raise ResultError(res)
+            blocks_we_have['print'] = dict(
+                metadata_block.raw_data) if metadata_block else None
+            return blocks_we_have
+        elif block_header.type == 5:
+            # thumbnails block
+            thumbnail_block = ThumbnailBlock()
+            res = thumbnail_block.read_data(wrapper, header, block_header)
+            if res != EResult.Success:
+                raise ResultError(res)
+            blocks_we_have['thumbnails'].append(
+                {"meta": thumbnail_block.params,
+                 "bytes": thumbnail_block.data()})
+        else:
+            # not documented value
+            return blocks_we_have
+
+
+
