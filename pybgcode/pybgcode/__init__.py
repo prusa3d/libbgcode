@@ -135,27 +135,38 @@ def read_metadata(gcodefile: FILEWrapper, type: str = 'printer'):
 
     return get_metadata(gcodefile, header, block_header, metadata_block_class)
 
+# this list was taken from gcode-metadata library
+connect_metadata_keys = [
+    "filament used [cm3]", "filament used [mm]", "filament used [g]",
+    "filament cost", "filament_type", "temperature", "bed_temperature",
+    "nozzle_diameter", "estimated printing time (normal mode)",
+    "printer_model", "layer_height", "fill_density", "brim_width",
+    "support_material", "ironing", "quiet_percent_present",
+    "quiet_left_present", "quiet_change_in_present", "normal_percent_present",
+    "normal_left_present", "normal_change_in_present", "layer_info_present",
+    "max_layer_z"]
 
-def get_next_block_header(wrapper, header, block_header):
-    res = read_next_block_header(wrapper, header,
-                                 block_header)
-    if res != EResult.Success:
-        raise ResultError(res)
-    return block_header
+
+def filter_connect_metadata(output: dict) -> dict:
+    all_metadata = {**output['print'], **output['printer']}
+    connect_metadata = {
+        key: item for key, item in all_metadata.items()
+        if key in connect_metadata_keys}
+    return {'thumbnails': output['thumbnails'], 'metadata': connect_metadata}
 
 
 def read_connect_metadata(wrapper: FILEWrapper):
     """Read metadata from binary gcode file."""
-    blocks_we_need = ['print', 'thumbnails', 'printer']
-    blocks_we_have = {'print': None, 'thumbnails': [],
-                      'printer': None}
+    output = {'print': None, 'thumbnails': [], 'printer': None}
 
     # read file header
     res, header = get_header(wrapper)
     block_header = BlockHeader()
     while True:
         # read next block header
-        block_header = get_next_block_header(wrapper, header, block_header)
+        res = read_next_block_header(wrapper, header, block_header)
+        if res != EResult.Success:
+            raise ResultError(res)
         if block_header.type == 0:
             # file metadata - we do not need them
             metadata_block = FileMetadataBlock()
@@ -165,7 +176,7 @@ def read_connect_metadata(wrapper: FILEWrapper):
                 raise ResultError(res)
         elif block_header.type in (1, 2):
             # GCode block or Slicer metadata block - no more metadata
-            return blocks_we_have
+            return filter_connect_metadata(output)
         elif block_header.type == 3:
             # printer metadata - we need them
             metadata_block = PrinterMetadataBlock()
@@ -173,7 +184,7 @@ def read_connect_metadata(wrapper: FILEWrapper):
                 wrapper, header, block_header)
             if res != EResult.Success:
                 raise ResultError(res)
-            blocks_we_have['printer'] = dict(
+            output['printer'] = dict(
                 metadata_block.raw_data) if metadata_block else None
         elif block_header.type == 4:
             # print metdata - we need them
@@ -182,21 +193,21 @@ def read_connect_metadata(wrapper: FILEWrapper):
                 wrapper, header, block_header)
             if res != EResult.Success:
                 raise ResultError(res)
-            blocks_we_have['print'] = dict(
+            output['print'] = dict(
                 metadata_block.raw_data) if metadata_block else None
-            return blocks_we_have
+            return filter_connect_metadata(output)
         elif block_header.type == 5:
             # thumbnails block
             thumbnail_block = ThumbnailBlock()
             res = thumbnail_block.read_data(wrapper, header, block_header)
             if res != EResult.Success:
                 raise ResultError(res)
-            blocks_we_have['thumbnails'].append(
+            output['thumbnails'].append(
                 {"meta": thumbnail_block.params,
                  "bytes": thumbnail_block.data()})
         else:
             # not documented value
-            return blocks_we_have
+            return filter_connect_metadata(output)
 
 
 
