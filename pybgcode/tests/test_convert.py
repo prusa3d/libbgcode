@@ -8,7 +8,9 @@ from pybgcode import (
     EResult,
     EThumbnailFormat,
     read_thumbnails,
-    read_metadata
+    read_metadata,
+    read_connect_metadata,
+    connect_metadata_keys
 )
 
 # pylint: disable=missing-function-docstring
@@ -82,6 +84,11 @@ def test_main():
     assert print_metadata == TEST_PRINT_METADATA
     slicer_metadata = read_metadata(thumb_f, 'slicer')
     assert len(slicer_metadata) == TEST_LEN_SLICER_METADATA
+
+    all_metadata = read_connect_metadata(thumb_f)
+    assert len(all_metadata['thumbnails']) == TEST_THUMBNAILS
+    for key in all_metadata['metadata'].keys():
+        assert key in connect_metadata_keys
     pybgcode.close(thumb_f)
 
     # write thumbnails to png files
