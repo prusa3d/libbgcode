@@ -144,7 +144,7 @@ connect_metadata_keys = [
     "support_material", "ironing", "quiet_percent_present",
     "quiet_left_present", "quiet_change_in_present", "normal_percent_present",
     "normal_left_present", "normal_change_in_present", "layer_info_present",
-    "max_layer_z"]
+    "max_layer_z", "objects_info"]
 
 
 def filter_connect_metadata(output: dict) -> dict:
