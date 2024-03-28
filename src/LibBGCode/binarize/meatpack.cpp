@@ -383,6 +383,8 @@ void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
                 'X', 'Y', 'Z', 'E', 'F',
                 // G2, G3
                 'I', 'J', 'R',
+                // G4
+                'S',
                 // G29
                 'G', 'P', 'W', 'H', 'C', 'A'
             };
