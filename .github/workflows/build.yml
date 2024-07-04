@@ -365,7 +365,7 @@ jobs:
     - name: Build Python wheel
       working-directory: ${{github.workspace}}
       shell: bash
-      run: python3 -m build --wheel
+      run: pyproject-build --wheel
 
     - name: Build example (using find_package)
       working-directory: ${{github.workspace}}/example/build_fp
