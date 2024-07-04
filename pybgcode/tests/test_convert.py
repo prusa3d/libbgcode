@@ -86,6 +86,8 @@ def test_main():
     assert len(slicer_metadata) == TEST_LEN_SLICER_METADATA
 
     all_metadata = read_connect_metadata(thumb_f)
+    # ; extruder_colour = "" filtered out
+    assert 'extruder_colour' not in all_metadata['metadata']
     assert len(all_metadata['thumbnails']) == TEST_THUMBNAILS
     for key in all_metadata['metadata'].keys():
         assert key in connect_metadata_keys

@@ -144,14 +144,14 @@ connect_metadata_keys = [
     "support_material", "ironing", "quiet_percent_present",
     "quiet_left_present", "quiet_change_in_present", "normal_percent_present",
     "normal_left_present", "normal_change_in_present", "layer_info_present",
-    "max_layer_z", "objects_info"]
+    "max_layer_z", "objects_info", "extruder_colour"]
 
 
 def filter_connect_metadata(output: dict) -> dict:
     all_metadata = {**output['print'], **output['printer']}
     connect_metadata = {
         key: item for key, item in all_metadata.items()
-        if key in connect_metadata_keys}
+        if (key in connect_metadata_keys and item != '""')}
     return {'thumbnails': output['thumbnails'], 'metadata': connect_metadata}
 
 
