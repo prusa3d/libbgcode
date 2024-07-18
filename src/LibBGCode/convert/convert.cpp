@@ -186,7 +186,9 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
 
     static constexpr const std::string_view PrinterModel = "printer_model"sv;
     static constexpr const std::string_view FilamentType = "filament_type"sv;
+    static constexpr const std::string_view FilamentAbrasive = "filament_abrasive"sv;
     static constexpr const std::string_view NozzleDiameter = "nozzle_diameter"sv;
+    static constexpr const std::string_view NozzleHighFlow = "nozzle_high_flow"sv;
     static constexpr const std::string_view BedTemperature = "bed_temperature"sv;
     static constexpr const std::string_view BrimWidth = "brim_width"sv;
     static constexpr const std::string_view FillDensity = "fill_density"sv;
@@ -246,7 +248,9 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
 
     std::string printer_model;
     std::string filament_type;
+    std::string filament_abrasive;
     std::string nozzle_diameter;
+    std::string nozzle_high_flow;
     std::string bed_temperature;
     std::string brim_width;
     std::string fill_density;
@@ -324,7 +328,9 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
 
         if (collect_metadata(PrinterModel, printer_model, true)) return;
         if (collect_metadata(FilamentType, filament_type, true)) return;
+        if (collect_metadata(FilamentAbrasive, filament_abrasive, true)) return;
         if (collect_metadata(NozzleDiameter, nozzle_diameter, true)) return;
+        if (collect_metadata(NozzleHighFlow, nozzle_high_flow, true)) return;
         if (collect_metadata(BedTemperature, bed_temperature, true)) return;
         if (collect_metadata(BrimWidth, brim_width, true)) return;
         if (collect_metadata(FillDensity, fill_density, true)) return;
@@ -502,7 +508,9 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
     // update printer metadata
     append_metadata(binary_data.printer_metadata.raw_data, std::string(PrinterModel), printer_model);
     append_metadata(binary_data.printer_metadata.raw_data, std::string(FilamentType), filament_type);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(FilamentAbrasive), filament_abrasive);
     append_metadata(binary_data.printer_metadata.raw_data, std::string(NozzleDiameter), nozzle_diameter);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(NozzleHighFlow), nozzle_high_flow);
     append_metadata(binary_data.printer_metadata.raw_data, std::string(BedTemperature), bed_temperature);
     append_metadata(binary_data.printer_metadata.raw_data, std::string(BrimWidth), brim_width);
     append_metadata(binary_data.printer_metadata.raw_data, std::string(FillDensity), fill_density);
