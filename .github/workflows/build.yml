@@ -2,12 +2,57 @@ name: Build
 
 on: [push, pull_request, workflow_dispatch]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
 
 jobs:
+  multi-platform-build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.owner.login != github.event.pull_request.base.repo.owner.login
+    strategy:
+      matrix:
+        include:
+          - { plat: ubuntu-latest, arch: x86_64 }
+          - { plat: ubuntu-latest, arch: i686 }
+          - { plat: ubuntu-latest, arch: ppc64le, qemu: true }
+          # Linux: s390x fails test: "FAILED tests/test_convert.py::test_main - assert <EResult.InvalidMagicNumber:..."
+          #- { plat: ubuntu-latest, arch: s390x, qemu: true }
+          - { plat: ubuntu-24.04-arm, arch: aarch64 }
+          - { plat: ubuntu-24.04-arm, arch: armv7l }
+          # Linux ARM: QEMU-emulated builds fail with segmentation faults
+          #- { plat: ubuntu-24.04-arm, arch: ppc64le, qemu: true }
+          #- { plat: ubuntu-24.04-arm, arch: s390x, qemu: true }
+          # macOS ARM build somehow compiles x86_64 deps (macos-latest/macos-14 is ARM)
+          #- { plat: macos-latest, arch: arm64 }
+          # macOS ARM runners do not support Docker (yet), but macOS 13 runner is x86_64
+          - { plat: macos-13, arch: x86_64 }
+          - { plat: windows-latest, arch: AMD64 }
+          # Windows 32-bit builds fail
+          #- { plat: windows-latest, arch: x86 }
+      fail-fast: false
+    name: ${{ matrix.arch }} on ${{ matrix.plat }}
+    runs-on: ${{ matrix.plat }}
+    env:
+      # Skip PyPy builds for now
+      CIBW_SKIP: pp*
+    steps:
+    - uses: actions/checkout@v4
+    # Linux: Workaround for missing PIC error when linking heatshrink_dynalloc
+    - if: ${{ matrix.plat == 'ubuntu-latest' }}
+      run: sed -i '1i\set(CMAKE_POSITION_INDEPENDENT_CODE ON)' deps/heatshrink/CMakeLists.txt
+    - uses: actions/setup-python@v5
+    - if: ${{ matrix.qemu }}
+      uses: docker/setup-qemu-action@v3
+    - run: python -m pip install cibuildwheel
+    - run: python -m cibuildwheel --archs ${{ matrix.arch }} --output-dir build
+    - run: ls -l build
+
   build-linux:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.owner.login != github.event.pull_request.base.repo.owner.login
     # The CMake configure and build commands are platform agnostic and should work equally
     # well on Windows or Mac.  You can convert this to a matrix build if you need
     # cross-platform coverage.
@@ -105,6 +150,7 @@ jobs:
         path: ${{github.workspace}}/dist/
 
   build-wasm:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.owner.login != github.event.pull_request.base.repo.owner.login
     runs-on: ubuntu-latest
     container:
       image: emscripten/emsdk
@@ -194,6 +240,7 @@ jobs:
         path: ${{github.workspace}}/build/dist/lib/wasm/
 
   build-msvc:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.owner.login != github.event.pull_request.base.repo.owner.login
     runs-on: windows-2019
 
     strategy:
@@ -292,6 +339,7 @@ jobs:
         path: ${{github.workspace}}\dist\
 
   build-mac:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.owner.login != github.event.pull_request.base.repo.owner.login
     # The CMake configure and build commands are platform agnostic and should work equally
     # well on Windows or Mac.  You can convert this to a matrix build if you need
     # cross-platform coverage.
