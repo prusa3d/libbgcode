@@ -313,7 +313,7 @@ jobs:
       # Some projects don't allow in-source building, so create a separate build directory
       # We'll use this as our working directory for all subsequent commands
       run: |
-        python3 -m pip install build
+        brew install python-build
         cmake -E make_directory ${{github.workspace}}/build
         cmake -E make_directory ${{github.workspace}}/build/dist
         cmake -E make_directory ${{github.workspace}}/example/build_fp
@@ -365,7 +365,7 @@ jobs:
     - name: Build Python wheel
       working-directory: ${{github.workspace}}
       shell: bash
-      run: python3 -m build --wheel
+      run: pyproject-build --wheel
 
     - name: Build example (using find_package)
       working-directory: ${{github.workspace}}/example/build_fp

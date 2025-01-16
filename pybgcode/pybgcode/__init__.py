@@ -144,20 +144,21 @@ connect_metadata_keys = [
     "support_material", "ironing", "quiet_percent_present",
     "quiet_left_present", "quiet_change_in_present", "normal_percent_present",
     "normal_left_present", "normal_change_in_present", "layer_info_present",
-    "max_layer_z", "objects_info"]
+    "max_layer_z", "objects_info", "extruder_colour", "filament_abrasive",
+    "nozzle_high_flow"]
 
 
 def filter_connect_metadata(output: dict) -> dict:
     all_metadata = {**output['print'], **output['printer']}
     connect_metadata = {
         key: item for key, item in all_metadata.items()
-        if key in connect_metadata_keys}
+        if (key in connect_metadata_keys and item != '""')}
     return {'thumbnails': output['thumbnails'], 'metadata': connect_metadata}
 
 
 def read_connect_metadata(wrapper: FILEWrapper):
     """Read metadata from binary gcode file."""
-    output = {'print': None, 'thumbnails': [], 'printer': None}
+    output: dict = {'print': {}, 'thumbnails': [], 'printer': {}}
 
     # read file header
     res, header = get_header(wrapper)
@@ -185,7 +186,7 @@ def read_connect_metadata(wrapper: FILEWrapper):
             if res != EResult.Success:
                 raise ResultError(res)
             output['printer'] = dict(
-                metadata_block.raw_data) if metadata_block else None
+                metadata_block.raw_data) if metadata_block else {}
         elif block_header.type == 4:
             # print metdata - we need them
             metadata_block = PrintMetadataBlock()
@@ -194,8 +195,7 @@ def read_connect_metadata(wrapper: FILEWrapper):
             if res != EResult.Success:
                 raise ResultError(res)
             output['print'] = dict(
-                metadata_block.raw_data) if metadata_block else None
-            return filter_connect_metadata(output)
+                metadata_block.raw_data) if metadata_block else {}
         elif block_header.type == 5:
             # thumbnails block
             thumbnail_block = ThumbnailBlock()

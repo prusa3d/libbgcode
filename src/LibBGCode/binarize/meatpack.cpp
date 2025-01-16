@@ -383,6 +383,8 @@ void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
                 'X', 'Y', 'Z', 'E', 'F',
                 // G2, G3
                 'I', 'J', 'R',
+                // G4
+                'S',
                 // G29
                 'G', 'P', 'W', 'H', 'C', 'A'
             };
@@ -407,11 +409,21 @@ void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
                 is_gline_parameter(c_unbin[i])) {
                 *it_unbin_end = ' ';
                 ++it_unbin_end;
+                if (it_unbin_end == unbin_buffer.end()) {
+                    // the buffer is not big enough, resize it
+                    unbin_buffer.resize(2 * unbin_buffer.size(), 0);
+                    it_unbin_end = unbin_buffer.begin() + curr_unbin_buffer_length + 1;
+                }
             }
 
             if (c_unbin[i] != '\n' || std::distance(unbin_buffer.begin(), it_unbin_end) == 0 || *std::prev(it_unbin_end, 1) != '\n') {
                 *it_unbin_end = c_unbin[i];
                 ++it_unbin_end;
+                if (it_unbin_end == unbin_buffer.end()) {
+                    // the buffer is not big enough, resize it
+                    unbin_buffer.resize(2 * unbin_buffer.size(), 0);
+                    it_unbin_end = unbin_buffer.begin() + curr_unbin_buffer_length + 1;
+                }
             }
         }
 
