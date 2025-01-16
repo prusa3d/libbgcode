@@ -91,13 +91,13 @@ jobs:
       shell: bash
       run: python -m build --wheel
 
-    - uses: actions/upload-artifact@v3  # upload test results
+    - uses: actions/upload-artifact@v4  # upload test results
       if: success() || failure()        # run this step even if previous step failed
       with:
         name: test-results
         path: ${{github.workspace}}/build/**/result-junit-linux.xml
     
-    - uses: actions/upload-artifact@v3  # upload python module
+    - uses: actions/upload-artifact@v4  # upload python module
       name: Saving Python artifacts
       if: success()
       with:
@@ -180,13 +180,13 @@ jobs:
         emcmake cmake .. -DBGCODE_AS_SUBPROJECT=ON -DLibBGCode_BUILD_TESTS=OFF -DCMAKE_FIND_ROOT_PATH=$(pwd)/../../deps/build-wasm/destdir/usr/local
         cmake --build .
 
-    - uses: actions/upload-artifact@v3  # upload test results
+    - uses: actions/upload-artifact@v4  # upload test results
       if: success() || failure()        # run this step even if previous step failed
       with:
         name: test-results
         path: ${{github.workspace}}/build/**/result-junit-wasm.xml
 
-    - uses: actions/upload-artifact@v3  # upload wasm module
+    - uses: actions/upload-artifact@v4  # upload wasm module
       name: Saving WebAssembly artifacts
       if: success()
       with:
@@ -278,13 +278,13 @@ jobs:
       working-directory: ${{github.workspace}}
       run: python -m build --wheel
 
-    - uses: actions/upload-artifact@v3  # upload test results
+    - uses: actions/upload-artifact@v4  # upload test results
       if: success() || failure()        # run this step even if previous step failed
       with:
         name: test-results-msvc
         path: ${{github.workspace}}\build\**\result-junit-msvc.xml
 
-    - uses: actions/upload-artifact@v3  # upload python module
+    - uses: actions/upload-artifact@v4  # upload python module
       name: Saving Python artifacts
       if: success()
       with:
@@ -381,13 +381,13 @@ jobs:
         cmake .. -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 -DBGCODE_AS_SUBPROJECT=ON -DLibBGCode_BUILD_TESTS=OFF -DCMAKE_PREFIX_PATH=${{github.workspace}}/deps/build-python-module/destdir/usr/local
         cmake --build .
 
-    - uses: actions/upload-artifact@v3  # upload test results
+    - uses: actions/upload-artifact@v4  # upload test results
       if: success() || failure()        # run this step even if previous step failed
       with:
         name: test-results
         path: ${{github.workspace}}/build/**/result-junit-mac.xml
 
-    - uses: actions/upload-artifact@v3  # upload python module
+    - uses: actions/upload-artifact@v4  # upload python module
       name: Saving Python artifacts
       if: success()
       with:
