@@ -1,8 +1,10 @@
-#include <catch_main.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include "core/core.hpp"
 
 #include <boost/nowide/cstdio.hpp>
+
+#include <iostream>
 
 using namespace bgcode::core;
 
