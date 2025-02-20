@@ -1,8 +1,9 @@
-#include <catch_main.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include "convert/convert.hpp"
 
 #include <fstream>
+#include <iostream>
 
 #include <boost/nowide/cstdio.hpp>
 
