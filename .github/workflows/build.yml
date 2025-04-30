@@ -53,6 +53,10 @@ jobs:
     - run: python -m pip install cibuildwheel
     - run: python -m cibuildwheel --archs ${{ matrix.arch }} --output-dir build
     - run: ls -l build
+    - uses: actions/upload-artifact@v4
+      with:
+        name: libbgcode-python-${{ matrix.plat }}-${{ matrix.arch }}
+        path: build
 
   build-linux:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.owner.login != github.event.pull_request.base.repo.owner.login
