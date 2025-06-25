@@ -220,6 +220,9 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
     static constexpr const std::string_view ThumbnailQOIBegin = "thumbnail_QOI begin"sv;
     static constexpr const std::string_view ThumbnailQOIEnd   = "thumbnail_QOI end"sv;
 
+    static constexpr const std::string_view ThumbnailGLTFBegin = "thumbnail_GLTF begin"sv;
+    static constexpr const std::string_view ThumbnailGLTFEnd   = "thumbnail_GLTF end"sv;
+
     static constexpr const std::string_view PrusaSlicerConfig = "prusaslicer_config"sv;
 
     auto search_metadata_value = [&](const std::string_view& str, const std::string_view& key) {
@@ -280,6 +283,9 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
     std::optional<EThumbnailFormat> reading_thumbnail;
     size_t curr_thumbnail_data_size = 0;
     size_t curr_thumbnail_data_loaded = 0;
+    std::optional<EThumbnail3dFormat> reading_thumbnail_3d;
+    size_t curr_thumbnail_3d_data_size = 0;
+    size_t curr_thumbnail_3d_data_loaded = 0;
 
     bool producer_found = false;
     bool reading_config = false;
@@ -507,6 +513,76 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
             }
         }
 
+        // update thumbnails 3d
+        if (!reading_thumbnail_3d.has_value()) {
+            std::string_view sv_thumbnail_str;
+            if (sv_line.find(ThumbnailGLTFBegin) == 0) {
+                reading_thumbnail_3d = EThumbnail3dFormat::GLTF;
+                sv_thumbnail_str = trim(sv_line.substr(ThumbnailGLTFBegin.size()));
+            }
+            if (reading_thumbnail_3d.has_value()) {
+                Thumbnail3dBlock& thumbnail = binary_data.thumbnails_3d.emplace_back(Thumbnail3dBlock());
+                thumbnail.params.format = (uint16_t)*reading_thumbnail_3d;
+                pos = sv_thumbnail_str.find(" ");
+                if (pos == std::string_view::npos) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                const std::string_view sv_data_size_str = trim(sv_thumbnail_str.substr(pos + 1));
+                size_t data_size;
+                to_int(sv_data_size_str, data_size);
+                if (data_size == 0) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                curr_thumbnail_3d_data_size = data_size;
+                curr_thumbnail_3d_data_loaded = 0;
+                thumbnail.data.resize(data_size);
+                processed_lines.emplace_back(lines_counter++);
+                return;
+            }
+        }
+        else {
+            bool thumbnail_end = false;
+            if (sv_line.find(ThumbnailGLTFEnd) == 0) {
+                if (*reading_thumbnail_3d != EThumbnail3dFormat::GLTF) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                thumbnail_end = true;
+            }
+
+            if (thumbnail_end) {
+                reading_thumbnail_3d.reset();
+                if (curr_thumbnail_3d_data_loaded != curr_thumbnail_3d_data_size) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                Thumbnail3dBlock& thumbnail = binary_data.thumbnails_3d.back();
+                if (thumbnail.data.size() > curr_thumbnail_3d_data_loaded)
+                    thumbnail.data.resize(curr_thumbnail_3d_data_loaded);
+                std::vector<std::byte> decoded(boost::beast::detail::base64::decoded_size(thumbnail.data.size()));
+                auto thumbnail_buf = reinterpret_cast<const char *>(thumbnail.data.data());
+                decoded.resize(boost::beast::detail::base64::decode(decoded.data(), thumbnail_buf, thumbnail.data.size()).first);
+                thumbnail.data.clear();
+                std::copy(decoded.begin(), decoded.end(), std::back_inserter(thumbnail.data));
+                processed_lines.emplace_back(lines_counter++);
+                return;
+            }
+            else {
+                if (curr_thumbnail_3d_data_loaded + sv_line.size() > curr_thumbnail_3d_data_size) {
+                    parse_res = EResult::InvalidAsciiGCodeFile;
+                    return;
+                }
+                Thumbnail3dBlock& thumbnail = binary_data.thumbnails_3d.back();
+                auto sv_line_bytes = reinterpret_cast<const std::byte*>(sv_line.data());
+                thumbnail.data.insert(thumbnail.data.begin() + curr_thumbnail_3d_data_loaded, sv_line_bytes, sv_line_bytes + sv_line.size());
+                curr_thumbnail_3d_data_loaded += sv_line.size();
+                processed_lines.emplace_back(lines_counter++);
+                return;
+            }
+        }
+
         ++lines_counter;
     }))
         return EResult::ReadError;
@@ -717,6 +793,46 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
         }
         if (!write_line("\n;\n; " + format + " begin " + std::to_string(thumbnail_block.params.width) + "x" + std::to_string(thumbnail_block.params.height) +
             " " + std::to_string(encoded.length()) + "\n"))
+            return EResult::WriteError;
+        while (encoded.size() > max_row_length) {
+            if (!write_line("; " + encoded.substr(0, max_row_length) + "\n"))
+                return EResult::WriteError;
+            encoded = encoded.substr(max_row_length);
+        }
+        if (encoded.size() > 0) {
+            if (!write_line("; " + encoded + "\n"))
+                return EResult::WriteError;
+        }
+        if (!write_line("; " + format + " end\n;\n"))
+            return EResult::WriteError;
+
+        restore_position = ftell(&src_file);
+        res = read_next_block_header(src_file, file_header, block_header, checksum_buffer.data(), checksum_buffer.size());
+        if (res != EResult::Success)
+            // propagate error
+            return res;
+    }
+
+    //
+    // convert thumbnail3d blocks, if present
+    //
+    while ((EBlockType)block_header.type == EBlockType::Thumbnail3d) {
+        Thumbnail3dBlock thumbnail_block;
+        res = thumbnail_block.read_data(src_file, file_header, block_header);
+        if (res != EResult::Success)
+            // propagate error
+            return res;
+        static constexpr const size_t max_row_length = 78;
+        std::string encoded;
+        encoded.resize(boost::beast::detail::base64::encoded_size(thumbnail_block.data.size()));
+        encoded.resize(boost::beast::detail::base64::encode((void*)encoded.data(), (const void*)thumbnail_block.data.data(), thumbnail_block.data.size()));
+        std::string format;
+        switch ((EThumbnail3dFormat)thumbnail_block.params.format)
+        {
+        default:
+        case EThumbnail3dFormat::GLTF: { format = "thumbnail_GLTF"; break; }
+        }
+        if (!write_line("\n;\n; " + format + " begin " + " " + std::to_string(encoded.length()) + "\n"))
             return EResult::WriteError;
         while (encoded.size() > max_row_length) {
             if (!write_line("; " + encoded.substr(0, max_row_length) + "\n"))

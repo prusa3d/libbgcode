@@ -42,6 +42,12 @@ void update_checksum(Checksum& checksum, const ThumbnailBlock &th)
     checksum.append(th.data);
 }
 
+void update_checksum(Checksum& checksum, const Thumbnail3dBlock &th)
+{
+    checksum.append(th.params.format);
+    checksum.append(th.data);
+}
+
 static std::vector<uint8_t> encode(const std::byte* data, size_t data_size)
 {
     std::vector<uint8_t> ret(data_size);
@@ -51,6 +57,7 @@ static std::vector<uint8_t> encode(const std::byte* data, size_t data_size)
 
 static uint16_t metadata_encoding_types_count() { return 1 + (uint16_t)EMetadataEncodingType::INI; }
 static uint16_t thumbnail_formats_count()       { return 1 + (uint16_t)EThumbnailFormat::QOI; }
+static uint16_t thumbnail_3d_formats_count()    { return 1 + (uint16_t)EThumbnail3dFormat::GLTF; }
 static uint16_t gcode_encoding_types_count()    { return 1 + (uint16_t)EGCodeEncodingType::MeatPackComments; }
 
 static bool encode_metadata(const std::vector<std::pair<std::string, std::string>>& src, std::vector<uint8_t>& dst,
@@ -653,6 +660,72 @@ EResult ThumbnailBlock::read_data(FILE& file, const FileHeader& file_header, con
     return EResult::Success;
 }
 
+EResult Thumbnail3dBlock::write(FILE& file, EChecksumType checksum_type)
+{
+    if (params.format >= thumbnail_3d_formats_count())
+        return EResult::InvalidThumbnailFormat;
+    if (data.size() == 0)
+        return EResult::InvalidThumbnailDataSize;
+
+    // write block header
+    BlockHeader block_header((uint16_t)EBlockType::Thumbnail3d, (uint16_t)ECompressionType::None, (uint32_t)data.size());
+    EResult res = block_header.write(file);
+    if (res != EResult::Success)
+        // propagate error
+        return res;
+
+    res = params.write(file);
+    if (res != EResult::Success){
+        // propagate error
+        return res;
+    }
+
+    if (!write_to_file(file, data.data(), data.size()))
+        return EResult::WriteError;
+
+    if (checksum_type != EChecksumType::None) {
+        Checksum cs(checksum_type);
+        // update checksum with block header
+        update_checksum(cs, block_header);
+        // update checksum with block payload
+        update_checksum(cs, *this);
+        // write block checksum
+        res = cs.write(file);
+        if (res != EResult::Success)
+            // propagate error
+            return res;
+    }
+    return EResult::Success;
+}
+
+EResult Thumbnail3dBlock::read_data(FILE& file, const FileHeader& file_header, const BlockHeader& block_header)
+{
+    // read block payload
+    EResult res = params.read(file);
+    if (res != EResult::Success)
+        // propagate error
+        return res;
+    if (params.format >= thumbnail_3d_formats_count())
+        return EResult::InvalidThumbnailFormat;
+    if (block_header.uncompressed_size == 0)
+        return EResult::InvalidThumbnailDataSize;
+
+    data.resize(block_header.uncompressed_size);
+    if (!read_from_file(file, (void*)data.data(), block_header.uncompressed_size))
+        return EResult::ReadError;
+
+    const EChecksumType checksum_type = (EChecksumType)file_header.checksum_type;
+    if (checksum_type != EChecksumType::None) {
+        // read block checksum
+        Checksum cs(checksum_type);
+        const EResult res = cs.read(file);
+        if (res != EResult::Success)
+            // propagate error
+            return res;
+    }
+    return EResult::Success;
+}
+
 EResult GCodeBlock::write(FILE& file, ECompressionType compression_type, EChecksumType checksum_type) const
 {
     if (encoding_type > gcode_encoding_types_count())
@@ -827,6 +900,14 @@ EResult Binarizer::initialize(FILE& file, const BinarizerConfig& config)
 
     // save thumbnail blocks
     for (ThumbnailBlock& block : m_binary_data.thumbnails) {
+        res = block.write(*m_file, m_config.checksum);
+        if (res != EResult::Success)
+            // propagate error
+            return res;
+    }
+
+    // save thumbnail 3d blocks
+    for (Thumbnail3dBlock& block : m_binary_data.thumbnails_3d) {
         res = block.write(*m_file, m_config.checksum);
         if (res != EResult::Success)
             // propagate error

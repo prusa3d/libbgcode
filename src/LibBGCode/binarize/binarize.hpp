@@ -52,6 +52,17 @@ struct BGCODE_BINARIZE_EXPORT ThumbnailBlock
     core::EResult read_data(FILE& file, const core::FileHeader& file_header, const core::BlockHeader& block_header);
 };
 
+struct BGCODE_BINARIZE_EXPORT Thumbnail3dBlock
+{
+    core::Thumbnail3dParams params;
+    std::vector<std::byte> data;
+
+    // write block header and data
+    core::EResult write(FILE& file, core::EChecksumType checksum_type);
+    // read block data
+    core::EResult read_data(FILE& file, const core::FileHeader& file_header, const core::BlockHeader& block_header);
+};
+
 struct BGCODE_BINARIZE_EXPORT GCodeBlock
 {
     uint16_t encoding_type{ 0 };
@@ -92,6 +103,7 @@ struct BGCODE_BINARIZE_EXPORT BinaryData
     FileMetadataBlock file_metadata;
     PrinterMetadataBlock printer_metadata;
     std::vector<ThumbnailBlock> thumbnails;
+    std::vector<Thumbnail3dBlock> thumbnails_3d;
     SlicerMetadataBlock slicer_metadata;
     PrintMetadataBlock print_metadata;
 };
