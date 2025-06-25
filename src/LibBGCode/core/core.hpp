@@ -61,7 +61,8 @@ enum class EBlockType : uint16_t
     SlicerMetadata,
     PrinterMetadata,
     PrintMetadata,
-    Thumbnail
+    Thumbnail,
+    Thumbnail3d
 };
 
 enum class ECompressionType : uint16_t
@@ -89,6 +90,11 @@ enum class EThumbnailFormat : uint16_t
     PNG,
     JPG,
     QOI
+};
+
+enum class EThumbnail3dFormat : uint16_t
+{
+    GLTF
 };
 
 struct BGCODE_CORE_EXPORT FileHeader
@@ -133,6 +139,14 @@ struct BGCODE_CORE_EXPORT ThumbnailParams
     uint16_t format;
     uint16_t width;
     uint16_t height;
+
+    EResult write(FILE& file) const;
+    EResult read(FILE& file);
+};
+
+struct BGCODE_CORE_EXPORT Thumbnail3dParams
+{
+    uint16_t format;
 
     EResult write(FILE& file) const;
     EResult read(FILE& file);

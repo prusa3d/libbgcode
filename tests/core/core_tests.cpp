@@ -37,6 +37,7 @@ static std::string block_type_as_string(EBlockType type)
     case EBlockType::PrinterMetadata: { return "PrinterMetadata"; }
     case EBlockType::PrintMetadata:   { return "PrintMetadata"; }
     case EBlockType::Thumbnail:       { return "Thumbnail"; }
+    case EBlockType::Thumbnail3d:     { return "Thumbnail3d"; }
     }
     return "";
 };
@@ -84,115 +85,133 @@ static std::string thumbnail_format_as_string(EThumbnailFormat type)
     return "";
 };
 
- TEST_CASE("File transversal", "[Core]")
- {
-     const std::string filename = std::string(TEST_DATA_DIR) + "/mini_cube_b.bgcode";
-     std::cout << "\nTEST: File transversal\n";
-     std::cout << "File:" << filename << "\n";
+static std::string thumbnail3d_format_as_string(EThumbnail3dFormat type)
+{
+    switch (type)
+    {
+    case EThumbnail3dFormat::GLTF: { return "GLTF"; }
+    }
+    return "";
+};
 
-     const size_t MAX_CHECKSUM_CACHE_SIZE = 2048;
-     std::byte checksum_verify_buffer[MAX_CHECKSUM_CACHE_SIZE];
+TEST_CASE("File transversal", "[Core]")
+{
+    const std::string filename = std::string(TEST_DATA_DIR) + "/thumb3d.bgcode";
+    std::cout << "\nTEST: File transversal\n";
+    std::cout << "File:" << filename << "\n";
 
-     FILE* file = boost::nowide::fopen(filename.c_str(), "rb");
-     REQUIRE(file != nullptr);
-     ScopedFile scoped_file(file);
-     REQUIRE(is_valid_binary_gcode(*file, true, checksum_verify_buffer, sizeof(checksum_verify_buffer)) == EResult::Success);
+    const size_t MAX_CHECKSUM_CACHE_SIZE = 2048;
+    std::byte checksum_verify_buffer[MAX_CHECKSUM_CACHE_SIZE];
 
-     fseek(file, 0, SEEK_END);
-     const long file_size = ftell(file);
-     rewind(file);
+    FILE* file = boost::nowide::fopen(filename.c_str(), "rb");
+    REQUIRE(file != nullptr);
+    ScopedFile scoped_file(file);
+    REQUIRE(is_valid_binary_gcode(*file, true, checksum_verify_buffer, sizeof(checksum_verify_buffer)) == EResult::Success);
 
-     FileHeader file_header;
-     REQUIRE(read_header(*file, file_header, nullptr) == EResult::Success);
-     std::cout << "Checksum type: " << checksum_type_as_string((EChecksumType)file_header.checksum_type) << "\n";
+    fseek(file, 0, SEEK_END);
+    const long file_size = ftell(file);
+    rewind(file);
 
-     BlockHeader block_header;
+    FileHeader file_header;
+    REQUIRE(read_header(*file, file_header, nullptr) == EResult::Success);
+    std::cout << "Checksum type: " << checksum_type_as_string((EChecksumType)file_header.checksum_type) << "\n";
 
-     do
-     {
-         // read block header
-         REQUIRE(read_next_block_header(*file, file_header, block_header, checksum_verify_buffer, sizeof(checksum_verify_buffer)) == EResult::Success);
-         std::cout << "Block: " << block_type_as_string((EBlockType)block_header.type);
-         std::cout << " - compression: " << compression_type_as_string((ECompressionType)block_header.compression);
-         switch ((EBlockType)block_header.type)
-         {
-         case EBlockType::FileMetadata:
-         case EBlockType::PrinterMetadata:
-         case EBlockType::PrintMetadata:
-         case EBlockType::SlicerMetadata:
-         {
-             const long curr_pos = ftell(file);
-             uint16_t encoding;
-             const size_t rsize = fread(&encoding, 1, sizeof(encoding), file);
-             REQUIRE((ferror(file) == 0 && rsize == sizeof(encoding)));
-             fseek(file, curr_pos, SEEK_SET);
-             std::cout << " - encoding: " << metadata_encoding_as_string((EMetadataEncodingType)encoding);
-             break;
-         }
-         case EBlockType::GCode:
-         {
-             const long curr_pos = ftell(file);
-             uint16_t encoding;
-             const size_t rsize = fread(&encoding, 1, sizeof(encoding), file);
-             REQUIRE((ferror(file) == 0 && rsize == sizeof(encoding)));
-             fseek(file, curr_pos, SEEK_SET);
-             std::cout << " - encoding: " << gcode_encoding_as_string((EGCodeEncodingType)encoding);
-             break;
-         }
-         case EBlockType::Thumbnail:
-         {
-             const long curr_pos = ftell(file);
-             ThumbnailParams thumbnail_params;
-             REQUIRE(thumbnail_params.read(*file) == EResult::Success);
-             fseek(file, curr_pos, SEEK_SET);
-             std::cout << " - format: " << thumbnail_format_as_string((EThumbnailFormat)thumbnail_params.format);
-             std::cout << " (size: " << thumbnail_params.width << "x" << thumbnail_params.height << ")";
-             break;
-         }
-         default: { break; }
-         }
-         std::cout << " - data size: " << ((block_header.compressed_size == 0) ? block_header.uncompressed_size : block_header.compressed_size);
-         std::cout << "\n";
+    BlockHeader block_header;
 
-         // move to next block header
-         REQUIRE(skip_block(*file, file_header, block_header) == EResult::Success);
-         if (ftell(file) == file_size)
-             break;
-     } while (true);
- }
+    do
+    {
+        // read block header
+        REQUIRE(read_next_block_header(*file, file_header, block_header, checksum_verify_buffer, sizeof(checksum_verify_buffer)) == EResult::Success);
+        std::cout << "Block: " << block_type_as_string((EBlockType)block_header.type);
+        std::cout << " - compression: " << compression_type_as_string((ECompressionType)block_header.compression);
+        switch ((EBlockType)block_header.type)
+        {
+        case EBlockType::FileMetadata:
+        case EBlockType::PrinterMetadata:
+        case EBlockType::PrintMetadata:
+        case EBlockType::SlicerMetadata:
+        {
+            const long curr_pos = ftell(file);
+            uint16_t encoding;
+            const size_t rsize = fread(&encoding, 1, sizeof(encoding), file);
+            REQUIRE((ferror(file) == 0 && rsize == sizeof(encoding)));
+            fseek(file, curr_pos, SEEK_SET);
+            std::cout << " - encoding: " << metadata_encoding_as_string((EMetadataEncodingType)encoding);
+            break;
+        }
+        case EBlockType::GCode:
+        {
+            const long curr_pos = ftell(file);
+            uint16_t encoding;
+            const size_t rsize = fread(&encoding, 1, sizeof(encoding), file);
+            REQUIRE((ferror(file) == 0 && rsize == sizeof(encoding)));
+            fseek(file, curr_pos, SEEK_SET);
+            std::cout << " - encoding: " << gcode_encoding_as_string((EGCodeEncodingType)encoding);
+            break;
+        }
+        case EBlockType::Thumbnail:
+        {
+            const long curr_pos = ftell(file);
+            ThumbnailParams thumbnail_params;
+            REQUIRE(thumbnail_params.read(*file) == EResult::Success);
+            fseek(file, curr_pos, SEEK_SET);
+            std::cout << " - format: " << thumbnail_format_as_string((EThumbnailFormat)thumbnail_params.format);
+            std::cout << " (size: " << thumbnail_params.width << "x" << thumbnail_params.height << ")";
+            break;
+        }
+        case EBlockType::Thumbnail3d:
+        {
+            const long curr_pos = ftell(file);
+            Thumbnail3dParams thumbnail_params;
+            REQUIRE(thumbnail_params.read(*file) == EResult::Success);
+            fseek(file, curr_pos, SEEK_SET);
+            std::cout << " - format: " << thumbnail3d_format_as_string((EThumbnail3dFormat)thumbnail_params.format);
+            break;
+        }
+        default: { break; }
+        }
+        std::cout << " - data size: " << ((block_header.compressed_size == 0) ? block_header.uncompressed_size : block_header.compressed_size);
+        std::cout << "\n";
 
- TEST_CASE("Search for GCode blocks", "[Core]")
- {
-     const std::string filename = std::string(TEST_DATA_DIR) + "/mini_cube_b.bgcode";
-     std::cout << "\nTEST: Search for GCode blocks\n";
-     std::cout << "File:" << filename << "\n";
+        // move to next block header
+        REQUIRE(skip_block(*file, file_header, block_header) == EResult::Success);
+        if (ftell(file) == file_size)
+            break;
+    } while (true);
+}
 
-     const size_t MAX_CHECKSUM_CACHE_SIZE = 2048;
-     std::byte checksum_verify_buffer[MAX_CHECKSUM_CACHE_SIZE];
+TEST_CASE("Search for GCode blocks", "[Core]")
+{
+    const std::string filename = std::string(TEST_DATA_DIR) + "/mini_cube_b.bgcode";
+    std::cout << "\nTEST: Search for GCode blocks\n";
+    std::cout << "File:" << filename << "\n";
 
-     FILE* file = boost::nowide::fopen(filename.c_str(), "rb");
-     REQUIRE(file != nullptr);
-     ScopedFile scoped_file(file);
-     REQUIRE(is_valid_binary_gcode(*file, true, checksum_verify_buffer, sizeof(checksum_verify_buffer)) == EResult::Success);
+    const size_t MAX_CHECKSUM_CACHE_SIZE = 2048;
+    std::byte checksum_verify_buffer[MAX_CHECKSUM_CACHE_SIZE];
 
-     fseek(file, 0, SEEK_END);
-     const long file_size = ftell(file);
-     rewind(file);
+    FILE* file = boost::nowide::fopen(filename.c_str(), "rb");
+    REQUIRE(file != nullptr);
+    ScopedFile scoped_file(file);
+    REQUIRE(is_valid_binary_gcode(*file, true, checksum_verify_buffer, sizeof(checksum_verify_buffer)) == EResult::Success);
 
-     FileHeader file_header;
-     REQUIRE(read_header(*file, file_header, nullptr) == EResult::Success);
+    fseek(file, 0, SEEK_END);
+    const long file_size = ftell(file);
+    rewind(file);
 
-     BlockHeader block_header;
+    FileHeader file_header;
+    REQUIRE(read_header(*file, file_header, nullptr) == EResult::Success);
 
-     do
-     {
-         // search and read block header by type
-         REQUIRE(read_next_block_header(*file, file_header, block_header, EBlockType::GCode, checksum_verify_buffer, sizeof(checksum_verify_buffer)) == EResult::Success);
-         std::cout << "Block type: " << block_type_as_string((EBlockType)block_header.type) << "\n";
+    BlockHeader block_header;
 
-         // move to next block header
-         REQUIRE(skip_block(*file, file_header, block_header) == EResult::Success);
-         if (ftell(file) == file_size)
-             break;
-     } while (true);
- }
+    do
+    {
+        // search and read block header by type
+        REQUIRE(read_next_block_header(*file, file_header, block_header, EBlockType::GCode, checksum_verify_buffer, sizeof(checksum_verify_buffer)) == EResult::Success);
+        std::cout << "Block type: " << block_type_as_string((EBlockType)block_header.type) << "\n";
+
+        // move to next block header
+        REQUIRE(skip_block(*file, file_header, block_header) == EResult::Success);
+        if (ftell(file) == file_size)
+            break;
+    } while (true);
+}

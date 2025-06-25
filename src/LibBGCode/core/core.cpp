@@ -218,6 +218,18 @@ EResult ThumbnailParams::read(FILE& file){
     return EResult::Success;
 }
 
+EResult Thumbnail3dParams::write(FILE& file) const {
+    if (!write_to_file(file, &format, sizeof(format)))
+        return EResult::WriteError;
+    return EResult::Success;
+}
+
+EResult Thumbnail3dParams::read(FILE& file){
+    if (!read_from_file(file, &format, sizeof(format)))
+        return EResult::ReadError;
+    return EResult::Success;
+}
+
 BGCODE_CORE_EXPORT std::string_view translate_result(EResult result)
 {
     using namespace std::literals;
@@ -344,6 +356,22 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
             return res;
         }
         while ((EBlockType)block_header.type == EBlockType::Thumbnail) {
+            res = skip_block(file, file_header, block_header);
+            if (res != EResult::Success) {
+                // restore file position
+                fseek(&file, curr_pos, SEEK_SET);
+                // propagate error
+                return res;
+            }
+            res = read_next_block_header(file, file_header, block_header, cs_buffer, cs_buffer_size);
+            if (res != EResult::Success) {
+                // restore file position
+                fseek(&file, curr_pos, SEEK_SET);
+                // propagate error
+                return res;
+            }
+        }
+        while ((EBlockType)block_header.type == EBlockType::Thumbnail3d) {
             res = skip_block(file, file_header, block_header);
             if (res != EResult::Success) {
                 // restore file position
@@ -487,6 +515,7 @@ BGCODE_CORE_EXPORT size_t block_parameters_size(EBlockType type)
     case EBlockType::PrinterMetadata: { return sizeof(uint16_t); } /* encoding_type */
     case EBlockType::PrintMetadata:   { return sizeof(uint16_t); } /* encoding_type */
     case EBlockType::Thumbnail:       { return sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t); } /* format, width, height */
+    case EBlockType::Thumbnail3d:     { return sizeof(uint16_t); } /* format */
     }
     return 0;
 }
