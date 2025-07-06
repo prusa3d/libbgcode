@@ -45,11 +45,18 @@ jobs:
     - if: ${{ matrix.plat == 'ubuntu-latest' }}
       run: sed -i '1i\set(CMAKE_POSITION_INDEPENDENT_CODE ON)' deps/heatshrink/CMakeLists.txt
     - uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+        check-latest: true
     - if: ${{ matrix.qemu }}
       uses: docker/setup-qemu-action@v3
     - run: python -m pip install cibuildwheel
     - run: python -m cibuildwheel --archs ${{ matrix.arch }} --output-dir build
     - run: ls -l build
+    - uses: actions/upload-artifact@v4
+      with:
+        name: libbgcode-python-${{ matrix.plat }}-${{ matrix.arch }}
+        path: build
 
   build-linux:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.owner.login != github.event.pull_request.base.repo.owner.login
