@@ -59,10 +59,11 @@ jobs:
       with:
         name: libbgcode-python-${{ matrix.plat }}-${{ matrix.arch }}
         path: build
-  publish-pypi:
+  publish-testpypi:
     if: github.event_name == 'release' && github.event.action == 'published'
     needs: multi-platform-build
     runs-on: ubuntu-latest
+    environment: testpypi
     steps:
     - name: Download All Artifacts
       uses: actions/download-artifact@v4
@@ -70,6 +71,9 @@ jobs:
         path: dist
         merge-multiple: true
     - run: ls -R dist
+    - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
 
   # commented out these individual builds, don't think they are necessary with cibuildwheel matrix being used. 
   # build-linux:
