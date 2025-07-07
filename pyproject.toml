@@ -1,5 +1,5 @@
 [project]
-name = "pybgcode"
+name = "pybgcode-jneilliii"
 version = "0.2.0"
 description = "Prusa Block & Binary G-code reader / writer / converter"
 authors = [
@@ -23,6 +23,7 @@ requires = ["py-build-cmake~=0.1.8", "pytest"]
 build-backend = "py_build_cmake.build"
 
 [tool.py-build-cmake.module] # Where to find the Python module to package
+name = "pybgcode"
 directory = "pybgcode/"
 
 [tool.py-build-cmake.sdist] # What to include in source distributions
