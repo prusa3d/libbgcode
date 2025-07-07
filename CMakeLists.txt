@@ -8,6 +8,7 @@ project(LibBGCode VERSION ${LibBGCode_VERSION})
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(PROJECT_NAME "libbgcode")
 set(_libname ${PROJECT_NAME})
 string(TOLOWER ${_libname} _libname)
 string(REPLACE "lib" "" _libname ${_libname})
