@@ -1,5 +1,5 @@
 [project]
-name = "pybgcode"
+name = "pybgcode_jneilliii"
 version = "0.2.0"
 description = "Prusa Block & Binary G-code reader / writer / converter"
 authors = [
