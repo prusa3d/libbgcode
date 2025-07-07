@@ -20,7 +20,7 @@ jobs:
           - { plat: ubuntu-latest, arch: i686 }
           - { plat: ubuntu-24.04-arm, arch: aarch64 }
           - { plat: ubuntu-24.04-arm, arch: armv7l }
-          # ppc64le not worth the extended build time
+          # ppc64le: disable as long as they are the only emulated builds, adding 1h execution time for such a rare architecture
           #- { plat: ubuntu-latest, arch: ppc64le, qemu: true }
           #- { plat: ubuntu-24.04-arm, arch: ppc64le, qemu: true }
           # riscv64: manylinux does not provide images yet: https://quay.io/organization/pypa, https://github.com/pypa/manylinux/pull/1743
@@ -30,7 +30,7 @@ jobs:
           #- { plat: ubuntu-latest, arch: s390x, qemu: true }
           #- { plat: ubuntu-24.04-arm, arch: s390x, qemu: true }
           # macOS ARM: Builds somehow compile x86_64 deps (macos-latest/macos-14 is ARM)
-          #- { plat: macos-latest, arch: arm64 }
+          - { plat: macos-latest, arch: arm64 }
           # macOS 13 runners are x86_64
           - { plat: macos-13, arch: x86_64 }
           - { plat: windows-latest, arch: AMD64 }
@@ -44,10 +44,13 @@ jobs:
     # Linux: Workaround for missing PIC error when linking heatshrink_dynalloc
     - if: matrix.plat == 'ubuntu-latest'
       run: sed -i '1i\set(CMAKE_POSITION_INDEPENDENT_CODE ON)' deps/heatshrink/CMakeLists.txt
+    # macOS ARM: Define architecture explicitly, else it compiles x86_64 deps, even on ARM host
+    #- if: matrix.plat == 'macos-latest'
+    #  run: echo 'CIBW_ENVIRONMENT=CMAKE_OSX_ARCHITECTURES=arm64' >> $GITHUB_ENV
     # macOS 13: Workaround for mismatch regarding "std::uncaught_exceptions()" availability along the toolchain: https://github.com/catchorg/Catch2/issues/2779
     - if: matrix.plat == 'macos-13'
       run: |
-        # No idea how to achive the same with native macOS sed, hence use proper GNU sed ...
+        # No idea how to achieve the same with native macOS sed, hence use proper GNU sed ...
         brew install gnu-sed
         gsed -i '/CMAKE_ARGS/a\        -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12' deps/Catch2/Catch2.cmake
     # riscv64: Explicit opt-in required for now: https://cibuildwheel.pypa.io/en/stable/options/#archs
@@ -61,6 +64,8 @@ jobs:
       uses: docker/setup-qemu-action@v3
     - run: python -m pip install cibuildwheel
     - run: python -m cibuildwheel --archs ${{ matrix.arch }} --output-dir build
+      env:
+        CIBW_ENVIRONMENT_MACOS: CMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}
     - run: ls -l build
     - uses: actions/upload-artifact@v4
       with:
