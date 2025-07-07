@@ -10,7 +10,6 @@ license-files = ["LICENSE"]
 readme = "README.md"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "LICENSE :: OSI APPROVED :: GNU AFFERO GENERAL PUBLIC LICENSE V3 OR LATER (AGPLV3+)",
     "Operating System :: OS Independent",
 ]
 requires-python = ">=3.7"
