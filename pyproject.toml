@@ -10,6 +10,7 @@ license = { file = "LICENSE" }
 #license-files = ["LICENSE"]
 readme = "README.md"
 classifiers = [
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
