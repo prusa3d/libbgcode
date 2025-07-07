@@ -1,10 +1,6 @@
 name: Build
 
-on:
-  pull_request:
-  release:
-    types: [published]
-  workflow_dispatch:
+on: [push, pull_request, workflow_dispatch]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -64,7 +60,7 @@ jobs:
         name: libbgcode-python-${{ matrix.plat }}-${{ matrix.arch }}
         path: build
   publish-testpypi:
-    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'push' && github.ref_type == 'tag'
     needs: multi-platform-build
     runs-on: ubuntu-latest
     environment: testpypi
