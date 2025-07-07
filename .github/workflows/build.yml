@@ -1,6 +1,10 @@
 name: Build
 
-on: [push, pull_request, release, workflow_dispatch]
+on:
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -60,7 +64,7 @@ jobs:
         name: libbgcode-python-${{ matrix.plat }}-${{ matrix.arch }}
         path: build
   publish-testpypi:
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     needs: multi-platform-build
     runs-on: ubuntu-latest
     environment: testpypi
@@ -76,6 +80,8 @@ jobs:
     - uses: pypa/gh-action-pypi-publish@release/v1
       with:
         repository-url: https://test.pypi.org/legacy/
+        skip-existing: true
+        verbose: true
 
   # commented out these individual builds, don't think they are necessary with cibuildwheel matrix being used. 
   # build-linux:
