@@ -22,15 +22,9 @@ requires-python = ">=3.7"
 requires = ["py-build-cmake~=0.1.8", "pytest"]
 build-backend = "py_build_cmake.build"
 
-[tool.setuptools]
-packages = [
-  "pybgcode",
-]
-include-package-data = true
-package-dir = { "" = "pybgcode/" }
-
-# [tool.py-build-cmake.module] # Where to find the Python module to package
-# directory = "pybgcode/"
+[tool.py-build-cmake.module] # Where to find the Python module to package
+name = "pybgcode"
+directory = "pybgcode/"
 
 [tool.py-build-cmake.sdist] # What to include in source distributions
 include = [ "pybgcode/*", "src/*" , "deps/*", "deps/build.cmake", "cmake/*", "CMakeLists.txt", "CMakePresets.json"]
