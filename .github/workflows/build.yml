@@ -64,6 +64,8 @@ jobs:
     needs: multi-platform-build
     runs-on: ubuntu-latest
     environment: testpypi
+    permissions:
+      id-token: write
     steps:
     - name: Download All Artifacts
       uses: actions/download-artifact@v4
@@ -72,8 +74,8 @@ jobs:
         merge-multiple: true
     - run: ls -R dist
     - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
+      with:
+        repository-url: https://test.pypi.org/legacy/
 
   # commented out these individual builds, don't think they are necessary with cibuildwheel matrix being used. 
   # build-linux:
