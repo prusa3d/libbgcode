@@ -18,7 +18,8 @@ jobs:
         include:
           - { plat: ubuntu-latest, arch: x86_64 }
           - { plat: ubuntu-latest, arch: i686 }
-          - { plat: ubuntu-latest, arch: ppc64le, qemu: true }
+          # comment out ppc64le because it is so slow to build and minor use case
+          #- { plat: ubuntu-latest, arch: ppc64le, qemu: true }
           # Linux: s390x fails test: "FAILED tests/test_convert.py::test_main - assert <EResult.InvalidMagicNumber:..."
           #- { plat: ubuntu-latest, arch: s390x, qemu: true }
           - { plat: ubuntu-24.04-arm, arch: aarch64 }
@@ -38,7 +39,8 @@ jobs:
     runs-on: ${{ matrix.plat }}
     env:
       # Skip PyPy builds for now
-      CIBW_SKIP: pp*
+      # this was giving warnings because pypi builds weren't enabled for skipping
+      # CIBW_SKIP: pp*
     steps:
     - uses: actions/checkout@v4
     # Linux: Workaround for missing PIC error when linking heatshrink_dynalloc
@@ -58,7 +60,7 @@ jobs:
         name: libbgcode-python-${{ matrix.plat }}-${{ matrix.arch }}
         path: build
   publish-pypi:
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' && github.event.action == 'published'
     needs: multi-platform-build
     runs-on: ubuntu-latest
     steps:
