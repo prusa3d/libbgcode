@@ -8,6 +8,7 @@ on:
 
 jobs:
   report:
+    if: github.event.workflow_run.conclusion != 'skipped'
     runs-on: ubuntu-latest
     steps:
     - uses: dorny/test-reporter@v1

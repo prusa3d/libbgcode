@@ -18,34 +18,40 @@ jobs:
         include:
           - { plat: ubuntu-latest, arch: x86_64 }
           - { plat: ubuntu-latest, arch: i686 }
-          # comment out ppc64le because it is so slow to build and minor use case
-          #- { plat: ubuntu-latest, arch: ppc64le, qemu: true }
-          # Linux: s390x fails test: "FAILED tests/test_convert.py::test_main - assert <EResult.InvalidMagicNumber:..."
-          #- { plat: ubuntu-latest, arch: s390x, qemu: true }
           - { plat: ubuntu-24.04-arm, arch: aarch64 }
           - { plat: ubuntu-24.04-arm, arch: armv7l }
-          # Linux ARM: QEMU-emulated builds fail with segmentation faults
-          #- { plat: ubuntu-24.04-arm, arch: ppc64le, qemu: true }
+          - { plat: ubuntu-latest, arch: ppc64le, qemu: true }
+          - { plat: ubuntu-24.04-arm, arch: ppc64le, qemu: true }
+          # riscv64: manylinux does not provide images yet: https://quay.io/organization/pypa, https://github.com/pypa/manylinux/pull/1743
+          #- { plat: ubuntu-latest, arch: riscv64, qemu: true }
+          #- { plat: ubuntu-24.04-arm, arch: riscv64, qemu: true }
+          # s390x: Builds fail test: "FAILED tests/test_convert.py::test_main - assert <EResult.InvalidMagicNumber:..."
+          #- { plat: ubuntu-latest, arch: s390x, qemu: true }
           #- { plat: ubuntu-24.04-arm, arch: s390x, qemu: true }
-          # macOS ARM build somehow compiles x86_64 deps (macos-latest/macos-14 is ARM)
+          # macOS ARM: Builds somehow compile x86_64 deps (macos-latest/macos-14 is ARM)
           #- { plat: macos-latest, arch: arm64 }
-          # macOS ARM runners do not support Docker (yet), but macOS 13 runner is x86_64
-          #- { plat: macos-13, arch: x86_64 }
+          # macOS 13 runners are x86_64
+          - { plat: macos-13, arch: x86_64 }
           - { plat: windows-latest, arch: AMD64 }
-          # Windows 32-bit builds fail
+          # Windows 32-bit builds fail on 64-bit Windows hosts with "error LNK2001: unresolved external symbol" errors
           #- { plat: windows-latest, arch: x86 }
       fail-fast: false
     name: ${{ matrix.arch }} on ${{ matrix.plat }}
     runs-on: ${{ matrix.plat }}
-    # env:
-      # Skip PyPy builds for now
-      # this was giving warnings because pypi builds weren't enabled for skipping
-      # CIBW_SKIP: pp*
     steps:
     - uses: actions/checkout@v4
     # Linux: Workaround for missing PIC error when linking heatshrink_dynalloc
-    - if: ${{ matrix.plat == 'ubuntu-latest' }}
+    - if: matrix.plat == 'ubuntu-latest'
       run: sed -i '1i\set(CMAKE_POSITION_INDEPENDENT_CODE ON)' deps/heatshrink/CMakeLists.txt
+    # macOS 13: Workaround for mismatch regarding "std::uncaught_exceptions()" availability along the toolchain: https://github.com/catchorg/Catch2/issues/2779
+    - if: matrix.plat == 'macos-13'
+      run: |
+        # No idea how to achive the same with native macOS sed, hence use proper GNU sed ...
+        brew install gnu-sed
+        gsed -i '/CMAKE_ARGS/a\        -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12' deps/Catch2/Catch2.cmake
+    # riscv64: Explicit opt-in required for now: https://cibuildwheel.pypa.io/en/stable/options/#archs
+    - if: matrix.arch == 'riscv64'
+      run: echo 'CIBW_ENABLE=cpython-experimental-riscv64' >> $GITHUB_ENV
     - uses: actions/setup-python@v5
       with:
         python-version: '3.x'
