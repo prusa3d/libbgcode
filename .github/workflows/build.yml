@@ -29,8 +29,8 @@ jobs:
           # s390x: Builds fail test: "FAILED tests/test_convert.py::test_main - assert <EResult.InvalidMagicNumber:..."
           #- { plat: ubuntu-latest, arch: s390x, qemu: true }
           #- { plat: ubuntu-24.04-arm, arch: s390x, qemu: true }
-          # macOS ARM: Builds somehow compile x86_64 deps (macos-latest/macos-14 is ARM)
-          - { plat: macos-latest, arch: arm64 }
+          # macOS ARM: Enforcing CMAKE_OSX_ARCHITECTURES leads to ARM deps, but then tests fail, expecting x86_64 ... leaving disabled for now
+          #- { plat: macos-latest, arch: arm64 }
           # macOS 13 runners are x86_64
           - { plat: macos-13, arch: x86_64 }
           - { plat: windows-latest, arch: AMD64 }
@@ -44,9 +44,6 @@ jobs:
     # Linux: Workaround for missing PIC error when linking heatshrink_dynalloc
     - if: matrix.plat == 'ubuntu-latest'
       run: sed -i '1i\set(CMAKE_POSITION_INDEPENDENT_CODE ON)' deps/heatshrink/CMakeLists.txt
-    # macOS ARM: Define architecture explicitly, else it compiles x86_64 deps, even on ARM host
-    #- if: matrix.plat == 'macos-latest'
-    #  run: echo 'CIBW_ENVIRONMENT=CMAKE_OSX_ARCHITECTURES=arm64' >> $GITHUB_ENV
     # macOS 13: Workaround for mismatch regarding "std::uncaught_exceptions()" availability along the toolchain: https://github.com/catchorg/Catch2/issues/2779
     - if: matrix.plat == 'macos-13'
       run: |
@@ -64,6 +61,7 @@ jobs:
       uses: docker/setup-qemu-action@v3
     - run: python -m pip install cibuildwheel
     - run: python -m cibuildwheel --archs ${{ matrix.arch }} --output-dir build
+      # macOS: Define architecture explicitly, else it compiles x86_64 deps on ARM host
       env:
         CIBW_ENVIRONMENT_MACOS: CMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}
     - run: ls -l build
