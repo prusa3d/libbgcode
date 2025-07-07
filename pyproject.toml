@@ -1,5 +1,5 @@
 [project]
-name = "pybgcode"
+name = "pybgcode-jneilliii"
 version = "0.2.0"
 description = "Prusa Block & Binary G-code reader / writer / converter"
 authors = [
@@ -23,14 +23,14 @@ requires = ["py-build-cmake~=0.1.8", "pytest"]
 build-backend = "py_build_cmake.build"
 
 [tool.py-build-cmake.module] # Where to find the Python module to package
-directory = "pybgcode/"
+directory = "pybgcode"
 
 [tool.py-build-cmake.sdist] # What to include in source distributions
-include = [ "pybgcode/*", "src/*" , "deps/*", "deps/build.cmake", "cmake/*", "CMakeLists.txt", "CMakePresets.json"]
+include = ["pybgcode/*", "src/*" , "deps/*", "deps/build.cmake", "cmake/*", "CMakeLists.txt", "CMakePresets.json"]
 exclude = [".gitignore", ".git/", ".github/", "deps/build*", "build*", "CMakeLists.txt.user", "*.bak"]
 
 [tool.py-build-cmake.cmake] # How to build the CMake project
-source_path = "./pybgcode"
+source_path = "pybgcode"
 build_type = "Release"
 config = ["Release"]
 # generator = "Ninja"
