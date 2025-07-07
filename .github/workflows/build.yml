@@ -37,7 +37,7 @@ jobs:
       fail-fast: false
     name: ${{ matrix.arch }} on ${{ matrix.plat }}
     runs-on: ${{ matrix.plat }}
-    env:
+    # env:
       # Skip PyPy builds for now
       # this was giving warnings because pypi builds weren't enabled for skipping
       # CIBW_SKIP: pp*
