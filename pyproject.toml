@@ -5,9 +5,9 @@ description = "Prusa Block & Binary G-code reader / writer / converter"
 authors = [
   { name = "Enrico Turri" }, { name = "Tomas Meszaros" }
 ]
-#license = { file = "LICENSE" }
-license = "AGPL-3.0-or-later"
-license-files = ["LICENSE"]
+license = { file = "LICENSE" }
+# license = "AGPL-3.0-or-later"
+# license-files = ["LICENSE"]
 readme = "README.md"
 classifiers = [
     "Programming Language :: Python :: 3",
