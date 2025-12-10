@@ -6,4 +6,5 @@ add_cmake_project(Boost
         -DBOOST_INCLUDE_LIBRARIES:STRING=beast|nowide
         -DBOOST_EXCLUDE_LIBRARIES:STRING=context|coroutine
         -DBUILD_TESTING:BOOL=OFF
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 )
