@@ -221,6 +221,7 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
     static constexpr const std::string_view ThumbnailQOIEnd   = "thumbnail_QOI end"sv;
 
     static constexpr const std::string_view PrusaSlicerConfig = "prusaslicer_config"sv;
+    static constexpr const std::string_view PrusaSlicerConfigJson = "prusaslicer_json_config"sv;
 
     auto search_metadata_value = [&](const std::string_view& str, const std::string_view& key) {
         std::string ret;
@@ -280,6 +281,8 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
     std::optional<EThumbnailFormat> reading_thumbnail;
     size_t curr_thumbnail_data_size = 0;
     size_t curr_thumbnail_data_loaded = 0;
+
+    std::optional<std::string> slicer_json;
 
     bool producer_found = false;
     bool reading_config = false;
@@ -502,6 +505,26 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
                 auto sv_line_bytes = reinterpret_cast<const std::byte*>(sv_line.data());
                 thumbnail.data.insert(thumbnail.data.begin() + curr_thumbnail_data_loaded, sv_line_bytes, sv_line_bytes + sv_line.size());
                 curr_thumbnail_data_loaded += sv_line.size();
+                processed_lines.emplace_back(lines_counter++);
+                return;
+            }
+        }
+
+        if (!slicer_json.has_value()) {
+            if (search_metadata_value(sv_line, PrusaSlicerConfigJson) == "begin") {
+                slicer_json = "";
+                processed_lines.emplace_back(lines_counter++);
+                return;
+            }
+        }
+        else {
+            if (search_metadata_value(sv_line, PrusaSlicerConfigJson) == "end") {
+                binary_data.slicer3_metadata.set_json(slicer_json.value());
+                processed_lines.emplace_back(lines_counter++);
+                return;
+            }
+            else {
+                slicer_json.value() += sv_line;
                 processed_lines.emplace_back(lines_counter++);
                 return;
             }
@@ -811,25 +834,67 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
         return EResult::WriteError;
 
     //
-    // convert slicer metadata block
+    // convert slicer metadata blocks
     //
-    res = read_next_block_header(src_file, file_header, block_header, checksum_buffer.data(), checksum_buffer.size());
-    if (res != EResult::Success)
-        // propagate error
-        return res;
-    if ((EBlockType)block_header.type != EBlockType::SlicerMetadata)
-        return EResult::InvalidSequenceOfBlocks;
-    SlicerMetadataBlock slicer_metadata_block;
-    res = slicer_metadata_block.read_data(src_file, file_header, block_header);
-    if (res != EResult::Success)
-        // propagate error
-        return res;
-    if (!write_line("\n; prusaslicer_config = begin\n"))
-        return EResult::WriteError;
-    if (!write_metadata(slicer_metadata_block.raw_data))
-        return EResult::WriteError;
-    if (!write_line("; prusaslicer_config = end\n\n"))
-        return EResult::WriteError;
+    std::optional<SlicerMetadataBlock> slicer_legacy_metadata_block;
+    std::optional<Slicer3MetadataBlock> slicer_metadata_block;
+
+    for (size_t i = 0; i < 2; i++) {
+        res = read_next_block_header(src_file, file_header, block_header, checksum_buffer.data(), checksum_buffer.size());
+        if (res != EResult::Success)
+            // propagate error
+                return res;
+        // at least one slicer metadata block is required
+        if ((EBlockType)block_header.type != EBlockType::SlicerMetadata && i == 0) {
+            return EResult::InvalidSequenceOfBlocks;
+        }
+        auto peek_result = peek_slicer_metadata_block(src_file, block_header);
+        switch (peek_result) {
+        case EPeekSlicerMetadataResult::ReadError:
+            return EResult::ReadError;
+
+        case EPeekSlicerMetadataResult::Slicer3MetadataFound:
+        {
+            Slicer3MetadataBlock block;
+            res = block.read_data(src_file, file_header, block_header);
+            slicer_metadata_block = std::move(block);
+
+            break;
+        }
+
+        case EPeekSlicerMetadataResult::SlicerMetadataFound:
+        {
+            SlicerMetadataBlock block;
+            res = block.read_data(src_file, file_header, block_header);
+            slicer_legacy_metadata_block = std::move(block);
+            break;
+        }
+
+        case EPeekSlicerMetadataResult::OtherBlockFound:
+            break;;
+
+        }
+
+        if (res != EResult::Success)
+            // propagate error
+            return res;
+    }
+    if (slicer_metadata_block.has_value()) {
+        if (!write_line("\n; prusaslicer_json_config = begin\n"))
+            return EResult::WriteError;
+        if (!write_line("; " + slicer_metadata_block->json() + "\n"))
+            return EResult::WriteError;
+        if (!write_line("; prusaslicer_json_config = end\n"))
+            return EResult::WriteError;
+    }
+    if (slicer_legacy_metadata_block.has_value()) {
+        if (!write_line("\n; prusaslicer_config = begin\n"))
+            return EResult::WriteError;
+        if (!write_metadata(slicer_legacy_metadata_block->raw_data))
+            return EResult::WriteError;
+        if (!write_line("; prusaslicer_config = end\n\n"))
+            return EResult::WriteError;
+    }
 
     return EResult::Success;
 }

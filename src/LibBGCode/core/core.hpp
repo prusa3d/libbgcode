@@ -74,7 +74,8 @@ enum class ECompressionType : uint16_t
 
 enum class EMetadataEncodingType : uint16_t
 {
-    INI
+    INI,
+    JSON
 };
 
 enum class EGCodeEncodingType : uint16_t

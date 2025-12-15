@@ -367,25 +367,27 @@ BGCODE_CORE_EXPORT EResult is_valid_binary_gcode(FILE& file, bool check_contents
             return EResult::InvalidBlockType;
         }
 
-        // read slicer metadata block header
-        res = skip_block(file, file_header, block_header);
-        if (res != EResult::Success) {
-            // restore file position
-            fseek(&file, curr_pos, SEEK_SET);
-            // propagate error
-            return res;
-        }
-        res = read_next_block_header(file, file_header, block_header, cs_buffer, cs_buffer_size);
-        if (res != EResult::Success) {
-            // restore file position
-            fseek(&file, curr_pos, SEEK_SET);
-            // propagate error
-            return res;
-        }
-        if ((EBlockType)block_header.type != EBlockType::SlicerMetadata) {
-            // restore file position
-            fseek(&file, curr_pos, SEEK_SET);
-            return EResult::InvalidBlockType;
+        for (size_t i = 0; i < 2; i++) {
+            // read slicer metadata block header
+            res = skip_block(file, file_header, block_header);
+            if (res != EResult::Success) {
+                // restore file position
+                fseek(&file, curr_pos, SEEK_SET);
+                // propagate error
+                return res;
+            }
+            res = read_next_block_header(file, file_header, block_header, cs_buffer, cs_buffer_size);
+            if (res != EResult::Success) {
+                // restore file position
+                fseek(&file, curr_pos, SEEK_SET);
+                // propagate error
+                return res;
+            }
+            if ((EBlockType)block_header.type != EBlockType::SlicerMetadata && i == 0) {
+                // restore file position
+                fseek(&file, curr_pos, SEEK_SET);
+                return EResult::InvalidBlockType;
+            }
         }
 
         // read gcode block headers

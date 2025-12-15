@@ -49,25 +49,34 @@ static std::vector<uint8_t> encode(const std::byte* data, size_t data_size)
     return ret;
 }
 
-static uint16_t metadata_encoding_types_count() { return 1 + (uint16_t)EMetadataEncodingType::INI; }
+static uint16_t metadata_encoding_types_count() { return 1 + (uint16_t)EMetadataEncodingType::JSON; }
 static uint16_t thumbnail_formats_count()       { return 1 + (uint16_t)EThumbnailFormat::QOI; }
 static uint16_t gcode_encoding_types_count()    { return 1 + (uint16_t)EGCodeEncodingType::MeatPackComments; }
 
 static bool encode_metadata(const std::vector<std::pair<std::string, std::string>>& src, std::vector<uint8_t>& dst,
     EMetadataEncodingType encoding_type)
 {
-    for (const auto& [key, value] : src) {
-        switch (encoding_type)
-        {
-        case EMetadataEncodingType::INI:
-        {
+
+    switch (encoding_type)
+    {
+    case EMetadataEncodingType::INI:
+    {
+        for (const auto& [key, value] : src) {
             dst.insert(dst.end(), key.begin(), key.end());
             dst.emplace_back('=');
             dst.insert(dst.end(), value.begin(), value.end());
             dst.emplace_back('\n');
-            break;
         }
-        }
+        break;
+    }
+    case EMetadataEncodingType::JSON:
+    {
+        if (src.size() != 1)
+            return false;
+        const auto& [k, v] = src.at(0);
+        dst.insert(dst.end(), v.begin(), v.end());
+        break;
+    }
     }
     return true;
 }
@@ -88,11 +97,18 @@ static bool decode_metadata(const std::vector<uint8_t>& src, std::vector<std::pa
             const std::string item(begin_it, end_it);
             const size_t pos = item.find_first_of('=');
             if (pos != std::string::npos) {
-                dst.emplace_back(std::make_pair(item.substr(0, pos), item.substr(pos + 1)));
+                dst.emplace_back(item.substr(0, pos), item.substr(pos + 1));
                 begin_it = ++end_it;
             }
         }
         break;
+    }
+    case EMetadataEncodingType::JSON:
+    {
+        std::string v;
+        v.insert(v.end(), src.begin(), src.end());
+        dst.emplace_back("", v);
+    break;
     }
     }
 
@@ -784,6 +800,76 @@ EResult SlicerMetadataBlock::read_data(FILE& file, const FileHeader& file_header
     return EResult::Success;
 }
 
+void Slicer3MetadataBlock::set_json(std::string_view json)
+{
+    if (raw_data.empty())
+        raw_data.emplace_back("", json);
+    else
+        raw_data.front().second = json;
+}
+
+const std::string& Slicer3MetadataBlock::json() const
+{
+    if (raw_data.empty()) {
+        static std::string EMPTY;
+        return EMPTY;
+    }
+    return raw_data.front().second;
+}
+
+
+EResult Slicer3MetadataBlock::write(FILE& file, ECompressionType compression_type, EChecksumType checksum_type) const
+{
+    Checksum cs(checksum_type);
+
+    // write block header, payload
+    EResult res = binarize::write(*this, file, EBlockType::SlicerMetadata, compression_type, cs);
+    if (res != EResult::Success)
+        // propagate error
+        return res;
+
+    // write block checksum
+    if (checksum_type != EChecksumType::None)
+        return cs.write(file);
+
+    return EResult::Success;
+}
+
+EResult Slicer3MetadataBlock::read_data(FILE& file, const FileHeader& file_header, const BlockHeader& block_header)
+{
+    // read block payload
+    EResult res = BaseMetadataBlock::read_data(file, block_header);
+    if (res != EResult::Success)
+        // propagate error
+        return res;
+
+    const EChecksumType checksum_type = (EChecksumType)file_header.checksum_type;
+    if (checksum_type != EChecksumType::None) {
+        // read block checksum
+        Checksum cs(checksum_type);
+        res = cs.read(file);
+        if (res != EResult::Success)
+            // propagate error
+            return res;
+    }
+    return EResult::Success;
+}
+
+EPeekSlicerMetadataResult peek_slicer_metadata_block(FILE& file, const core::BlockHeader& block_header)
+{
+    if (EBlockType{block_header.type} != EBlockType::SlicerMetadata)
+        return EPeekSlicerMetadataResult::OtherBlockFound;
+    decltype(Slicer3MetadataBlock::encoding_type) encoding_type;
+    auto pos = ftell(&file);
+    if (pos < 0)
+        return EPeekSlicerMetadataResult::ReadError;
+    if (!read_from_file(file, (void*)&encoding_type, sizeof(encoding_type)))
+        return EPeekSlicerMetadataResult::ReadError;
+    // rewind back the file like we didn't read it
+    fseek(&file, pos, SEEK_SET);
+    return EMetadataEncodingType{encoding_type} == EMetadataEncodingType::JSON ? EPeekSlicerMetadataResult::Slicer3MetadataFound : EPeekSlicerMetadataResult::SlicerMetadataFound;
+}
+
 bool Binarizer::is_enabled() const { return m_enabled; }
 void Binarizer::set_enabled(bool enable) { m_enabled = enable; }
 BinaryData& Binarizer::get_binary_data() { return m_binary_data; }
@@ -842,14 +928,26 @@ EResult Binarizer::initialize(FILE& file, const BinarizerConfig& config)
         // propagate error
         return res;
 
-    // save slicer metadata block
-    if (m_binary_data.slicer_metadata.raw_data.empty())
+    // save slicer metadata blocks
+    if (m_binary_data.slicer_metadata.raw_data.empty() && m_binary_data.slicer3_metadata.raw_data.empty())
         return EResult::MissingSlicerMetadata;
-    m_binary_data.slicer_metadata.encoding_type = (uint16_t)config.metadata_encoding;
-    res = m_binary_data.slicer_metadata.write(*m_file, m_config.compression.slicer_metadata, m_config.checksum);
-    if (res != EResult::Success)
-        // propagate error
-        return res;
+
+    if (!m_binary_data.slicer_metadata.raw_data.empty()) {
+        m_binary_data.slicer_metadata.encoding_type = (uint16_t)config.metadata_encoding;
+        res = m_binary_data.slicer_metadata.write(*m_file, m_config.compression.slicer_metadata, m_config.checksum);
+        if (res != EResult::Success) {
+            // propagate error
+            return res;
+        }
+    }
+
+    if (!m_binary_data.slicer3_metadata.raw_data.empty()) {
+        res = m_binary_data.slicer3_metadata.write(*m_file, m_config.compression.slicer3_metadata, m_config.checksum);
+        if (res != EResult::Success) {
+            // propagate error
+            return res;
+        }
+    }
 
     return EResult::Success;
 }

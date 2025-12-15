@@ -58,6 +58,7 @@ static std::string metadata_encoding_as_string(EMetadataEncodingType type)
     switch (type)
     {
     case EMetadataEncodingType::INI: { return "INI"; }
+    case EMetadataEncodingType::JSON: { return "JSON"; }
     }
     return "";
 };
