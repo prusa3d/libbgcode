@@ -7,11 +7,13 @@ from ._bgcode import (  # type: ignore
     EBlockType,
     EResult,
     EThumbnailFormat,
+    EPeekSlicerMetadataResult,
     FileHeader,
     FILEWrapper,
     PrintMetadataBlock,
     PrinterMetadataBlock,
     SlicerMetadataBlock,
+    Slicer3MetadataBlock,
     FileMetadataBlock,
     ThumbnailBlock,
     close,
@@ -24,7 +26,10 @@ from ._bgcode import (  # type: ignore
     read_header,
     read_next_block_header,
     rewind,
+    skip_block,
+    skip_block_content,
     translate_result,
+    peek_slicer_metadata_block,
     version,
 )
 
@@ -36,6 +41,7 @@ __all__ = [
         "EBlockType",
         "EResult",
         "EThumbnailFormat",
+        "EPeekSlicerMetadataResult",
         "FileHeader",
         "FileMetadataBlock",
         "PrintMetadataBlock",
@@ -47,9 +53,12 @@ __all__ = [
         "get_config",
         "is_open",
         "open",
+        "peek_slicer_metadata_block",
         "read_header",
         "read_next_block_header",
         "rewind",
+        "skip_block",
+        "skip_block_content",
         "translate_result"]
 
 

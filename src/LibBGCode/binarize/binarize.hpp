@@ -71,6 +71,33 @@ struct BGCODE_BINARIZE_EXPORT SlicerMetadataBlock : public BaseMetadataBlock
     core::EResult read_data(FILE& file, const core::FileHeader& file_header, const core::BlockHeader& block_header);
 };
 
+struct BGCODE_BINARIZE_EXPORT Slicer3MetadataBlock : public BaseMetadataBlock
+{
+    Slicer3MetadataBlock() : BaseMetadataBlock() {
+        encoding_type = static_cast<std::underlying_type_t<core::EMetadataEncodingType>>(
+              core::EMetadataEncodingType::JSON);
+    }
+
+    void set_json(std::string_view);
+    const std::string& json() const;
+
+    // write block header and data
+    core::EResult write(FILE& file, core::ECompressionType compression_type, core::EChecksumType checksum_type) const;
+    // read block data
+    core::EResult read_data(FILE& file, const core::FileHeader& file_header, const core::BlockHeader& block_header);
+};
+
+enum class EPeekSlicerMetadataResult {
+    Slicer3MetadataFound,
+    SlicerMetadataFound,
+    OtherBlockFound,
+    ReadError
+};
+
+// Peek the block content (just metadata extra "header") and decide what kind of block follows
+extern BGCODE_BINARIZE_EXPORT EPeekSlicerMetadataResult peek_slicer_metadata_block(FILE& file, const core::BlockHeader& block_header);
+
+
 struct BinarizerConfig
 {
     struct Compression
@@ -80,6 +107,7 @@ struct BinarizerConfig
         core::ECompressionType print_metadata{ core::ECompressionType::None };
         core::ECompressionType slicer_metadata{ core::ECompressionType::None };
         core::ECompressionType gcode{ core::ECompressionType::None };
+        core::ECompressionType slicer3_metadata{ core::ECompressionType::None };
     };
     Compression compression;
     core::EGCodeEncodingType gcode_encoding{ core::EGCodeEncodingType::None };
@@ -93,6 +121,7 @@ struct BGCODE_BINARIZE_EXPORT BinaryData
     PrinterMetadataBlock printer_metadata;
     std::vector<ThumbnailBlock> thumbnails;
     SlicerMetadataBlock slicer_metadata;
+    Slicer3MetadataBlock slicer3_metadata;
     PrintMetadataBlock print_metadata;
 };
 

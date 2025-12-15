@@ -466,6 +466,26 @@ PYBIND11_MODULE(MODULE_NAME, m) {
                 return self.read_data(*file.fptr, file_header, block_header);
             }, R"pbdoc(read block data)pbdoc", py::arg("file"), py::arg("file_header"), py::arg("block_header"));
 
+    py::class_<binarize::Slicer3MetadataBlock, binarize::BaseMetadataBlock>(m, "Slicer3MetadataBlock")
+        .def(py::init<>())
+        .def("write", [](binarize::Slicer3MetadataBlock &self, FILEWrapper &file, core::ECompressionType compression_type, core::EChecksumType checksum_type){
+                return self.write(*file.fptr, compression_type, checksum_type);
+            }, R"pbdoc(write block header and data)pbdoc", py::arg("file"), py::arg("compression_type"), py::arg("checksum_type"))
+        .def("read_data", [](binarize::Slicer3MetadataBlock &self, FILEWrapper &file, const core::FileHeader &file_header, const core::BlockHeader& block_header) {
+                return self.read_data(*file.fptr, file_header, block_header);
+            }, R"pbdoc(read block data)pbdoc", py::arg("file"), py::arg("file_header"), py::arg("block_header"));
+
+    py::enum_<binarize::EPeekSlicerMetadataResult>(m, "EPeekSlicerMetadataResult")
+        .value("Slicer3MetadataFound", binarize::EPeekSlicerMetadataResult::Slicer3MetadataFound)
+        .value("SlicerMetadataFound", binarize::EPeekSlicerMetadataResult::SlicerMetadataFound)
+        .value("OtherBlockFound", binarize::EPeekSlicerMetadataResult::OtherBlockFound)
+        .value("ReadError", binarize::EPeekSlicerMetadataResult::ReadError)
+        ;
+
+    m.def("peek_slicer_metadata_block", [](FILEWrapper& file, const core::BlockHeader& block_header) {
+            return binarize::peek_slicer_metadata_block(*file.fptr, block_header);
+        });
+
     py::class_<binarize::BinarizerConfig::Compression>(m, "BinarizerCompression")
         .def(py::init<>())
         .def_readwrite("file_metadata", &binarize::BinarizerConfig::Compression::file_metadata)
@@ -487,6 +507,7 @@ PYBIND11_MODULE(MODULE_NAME, m) {
         .def_readwrite("printer_metadata", &binarize::BinaryData::printer_metadata)
         .def_readwrite("thumbnails", &binarize::BinaryData::thumbnails)
         .def_readwrite("slicer_metadata", &binarize::BinaryData::slicer_metadata)
+        .def_readwrite("slicer3_metadata", &binarize::BinaryData::slicer3_metadata)
         .def_readwrite("printer_metadata", &binarize::BinaryData::printer_metadata);
 
     py::class_<binarize::Binarizer>(m, "Binarizer")
