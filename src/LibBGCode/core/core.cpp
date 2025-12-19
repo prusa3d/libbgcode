@@ -3,20 +3,35 @@
 
 namespace bgcode { namespace core {
 
-template<class T>
-static bool write_to_file(FILE& file, const T* data, size_t data_size)
+static bool write_to_file(FILE& file, const std::byte* data, size_t data_size)
 {
     const size_t wsize = fwrite(static_cast<const void*>(data), 1, data_size, &file);
     return !ferror(&file) && wsize == data_size;
 }
 
 template<class T>
-static bool read_from_file(FILE& file, T *data, size_t data_size)
+static bool write_to_file_le(FILE& file, const T &data)
 {
-    static_assert(!std::is_const_v<T>, "Type of output buffer cannot be const!");
+    std::array<std::byte, sizeof(T)> temp;
+    store_integer_le(data, temp.begin(), temp.size());
+    return write_to_file(file, temp.data(), temp.size());
+}
 
+static bool read_from_file(FILE& file, std::byte *data, size_t data_size)
+{
     const size_t rsize = fread(static_cast<void *>(data), 1, data_size, &file);
     return !ferror(&file) && rsize == data_size;
+}
+
+template<class T>
+static bool read_from_file_le(FILE& file, T &data)
+{
+    std::array<std::byte, sizeof(T)> temp;
+    if (!read_from_file(file, temp.data(), temp.size())) {
+        return false;
+    }
+    data = load_integer<T>(temp.begin(), temp.end());
+    return true;
 }
 
 EResult verify_block_checksum(FILE& file, const FileHeader& file_header,
@@ -112,11 +127,11 @@ EResult FileHeader::write(FILE& file) const
     if (checksum_type >= checksum_types_count())
         return EResult::InvalidChecksumType;
 
-    if (!write_to_file(file, &magic, sizeof(magic)))
+    if (!write_to_file_le(file, magic))
        return EResult::WriteError;
-    if (!write_to_file(file, &version, sizeof(version)))
+    if (!write_to_file_le(file, version))
         return EResult::WriteError;
-    if (!write_to_file(file, &checksum_type, sizeof(checksum_type)))
+    if (!write_to_file_le(file, checksum_type))
         return EResult::WriteError;
 
     return EResult::Success;
@@ -124,17 +139,17 @@ EResult FileHeader::write(FILE& file) const
 
 EResult FileHeader::read(FILE& file, const uint32_t* const max_version)
 {
-    if (!read_from_file(file, &magic, sizeof(magic)))
+    if (!read_from_file_le(file, magic))
         return EResult::ReadError;
     if (magic != MAGICi32)
         return EResult::InvalidMagicNumber;
 
-    if (!read_from_file(file, &version, sizeof(version)))
+    if (!read_from_file_le(file, version))
         return EResult::ReadError;
     if (max_version != nullptr && version > *max_version)
         return EResult::InvalidVersionNumber;
 
-    if (!read_from_file(file, &checksum_type, sizeof(checksum_type)))
+    if (!read_from_file_le(file, checksum_type))
         return EResult::ReadError;
     if (checksum_type >= checksum_types_count())
         return EResult::InvalidChecksumType;
@@ -157,14 +172,14 @@ long BlockHeader::get_position() const
 EResult BlockHeader::write(FILE& file)
 {
     m_position = ftell(&file);
-    if (!write_to_file(file, &type, sizeof(type)))
+    if (!write_to_file_le(file, type))
         return EResult::WriteError;
-    if (!write_to_file(file, &compression, sizeof(compression)))
+    if (!write_to_file_le(file, compression))
         return EResult::WriteError;
-    if (!write_to_file(file, &uncompressed_size, sizeof(uncompressed_size)))
+    if (!write_to_file_le(file, uncompressed_size))
         return EResult::WriteError;
     if (compression != (uint16_t)ECompressionType::None) {
-        if (!write_to_file(file, &compressed_size, sizeof(compressed_size)))
+        if (!write_to_file_le(file, compressed_size))
             return EResult::WriteError;
     }
     return EResult::Success;
@@ -173,20 +188,20 @@ EResult BlockHeader::write(FILE& file)
 EResult BlockHeader::read(FILE& file)
 {
     m_position = ftell(&file);
-    if (!read_from_file(file, &type, sizeof(type)))
+    if (!read_from_file_le(file, type))
         return EResult::ReadError;
     if (type >= block_types_count())
         return EResult::InvalidBlockType;
 
-    if (!read_from_file(file, &compression, sizeof(compression)))
+    if (!read_from_file_le(file, compression))
         return EResult::ReadError;
     if (compression >= compression_types_count())
         return EResult::InvalidCompressionType;
 
-    if (!read_from_file(file, &uncompressed_size, sizeof(uncompressed_size)))
+    if (!read_from_file_le(file, uncompressed_size))
         return EResult::ReadError;
     if (compression != (uint16_t)ECompressionType::None) {
-        if (!read_from_file(file, &compressed_size, sizeof(compressed_size)))
+        if (!read_from_file_le(file, compressed_size))
             return EResult::ReadError;
     }
 
@@ -199,21 +214,21 @@ size_t BlockHeader::get_size() const {
 }
 
 EResult ThumbnailParams::write(FILE& file) const {
-    if (!write_to_file(file, &format, sizeof(format)))
+    if (!write_to_file_le(file, format))
         return EResult::WriteError;
-    if (!write_to_file(file, &width, sizeof(width)))
+    if (!write_to_file_le(file, width))
         return EResult::WriteError;
-    if (!write_to_file(file, &height, sizeof(height)))
+    if (!write_to_file_le(file, height))
         return EResult::WriteError;
     return EResult::Success;
 }
 
 EResult ThumbnailParams::read(FILE& file){
-    if (!read_from_file(file, &format, sizeof(format)))
+    if (!read_from_file_le(file, format))
         return EResult::ReadError;
-    if (!read_from_file(file, &width, sizeof(width)))
+    if (!read_from_file_le(file, width))
         return EResult::ReadError;
-    if (!read_from_file(file, &height, sizeof(height)))
+    if (!read_from_file_le(file, height))
         return EResult::ReadError;
     return EResult::Success;
 }

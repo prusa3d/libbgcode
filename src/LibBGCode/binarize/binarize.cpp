@@ -18,20 +18,35 @@ using namespace core;
 
 namespace binarize {
 
-template<class T>
-static bool write_to_file(FILE& file, const T* data, size_t data_size)
+static bool write_to_file(FILE& file, const std::byte* data, size_t data_size)
 {
     const size_t wsize = fwrite(static_cast<const void*>(data), 1, data_size, &file);
     return !ferror(&file) && wsize == data_size;
 }
 
 template<class T>
-static bool read_from_file(FILE& file, T *data, size_t data_size)
+static bool write_to_file_le(FILE& file, const T &data)
 {
-    static_assert(!std::is_const_v<T>, "Type of output buffer cannot be const!");
+    std::array<std::byte, sizeof(T)> temp;
+    store_integer_le(data, temp.begin(), temp.size());
+    return write_to_file(file, temp.data(), temp.size());
+}
 
+static bool read_from_file(FILE& file, std::byte *data, size_t data_size)
+{
     const size_t rsize = fread(static_cast<void *>(data), 1, data_size, &file);
     return !ferror(&file) && rsize == data_size;
+}
+
+template<class T>
+static bool read_from_file_le(FILE& file, T &data)
+{
+    std::array<std::byte, sizeof(T)> temp;
+    if (!read_from_file(file, temp.data(), temp.size())) {
+        return false;
+    }
+    data = load_integer<T>(temp.begin(), temp.end());
+    return true;
 }
 
 void update_checksum(Checksum& checksum, const ThumbnailBlock &th)
@@ -420,10 +435,10 @@ core::EResult write(const BaseMetadataBlock &block, FILE& file, core::EBlockType
         return res;
 
     // write block payload
-    if (!write_to_file(file, &block.encoding_type, sizeof(block.encoding_type)))
+    if (!write_to_file_le(file, block.encoding_type))
         return EResult::WriteError;
     if (!out_data.empty()) {
-        if (!write_to_file(file, out_data.data(), out_data.size()))
+        if (!write_to_file(file, reinterpret_cast<const std::byte*>(out_data.data()), out_data.size()))
             return EResult::WriteError;
     }
 
@@ -443,7 +458,7 @@ EResult BaseMetadataBlock::read_data(FILE& file, const BlockHeader& block_header
 {
     const ECompressionType compression_type = (ECompressionType)block_header.compression;
 
-    if (!read_from_file(file, (void*)&encoding_type, sizeof(encoding_type)))
+    if (!read_from_file_le(file, encoding_type))
         return EResult::ReadError;
     if (encoding_type > metadata_encoding_types_count())
         return EResult::InvalidMetadataEncodingType;
@@ -452,7 +467,7 @@ EResult BaseMetadataBlock::read_data(FILE& file, const BlockHeader& block_header
     const size_t data_size = (compression_type == ECompressionType::None) ? block_header.uncompressed_size : block_header.compressed_size;
     if (data_size > 0) {
         data.resize(data_size);
-        if (!read_from_file(file, (void*)data.data(), data_size))
+        if (!read_from_file(file, reinterpret_cast<std::byte*>(data.data()), data_size))
             return EResult::ReadError;
     }
 
@@ -603,7 +618,7 @@ EResult ThumbnailBlock::write(FILE& file, EChecksumType checksum_type)
         return res;
     }
 
-    if (!write_to_file(file, data.data(), data.size()))
+    if (!write_to_file(file, reinterpret_cast<const std::byte*>(data.data()), data.size()))
         return EResult::WriteError;
 
     if (checksum_type != EChecksumType::None) {
@@ -638,7 +653,7 @@ EResult ThumbnailBlock::read_data(FILE& file, const FileHeader& file_header, con
         return EResult::InvalidThumbnailDataSize;
 
     data.resize(block_header.uncompressed_size);
-    if (!read_from_file(file, (void*)data.data(), block_header.uncompressed_size))
+    if (!read_from_file(file, reinterpret_cast<std::byte*>(data.data()), block_header.uncompressed_size))
         return EResult::ReadError;
 
     const EChecksumType checksum_type = (EChecksumType)file_header.checksum_type;
@@ -683,10 +698,10 @@ EResult GCodeBlock::write(FILE& file, ECompressionType compression_type, EChecks
         return res;
 
     // write block payload
-    if (!write_to_file(file, &encoding_type, sizeof(encoding_type)))
+    if (!write_to_file_le(file, encoding_type))
         return EResult::WriteError;
     if (!out_data.empty()) {
-        if (!write_to_file(file, out_data.data(), out_data.size()))
+        if (!write_to_file(file, reinterpret_cast<const std::byte*>(out_data.data()), out_data.size()))
             return EResult::WriteError;
     }
 
@@ -696,8 +711,10 @@ EResult GCodeBlock::write(FILE& file, ECompressionType compression_type, EChecks
         // update checksum with block header
         update_checksum(cs, block_header);
         // update checksum with block payload
+        std::array<std::byte, sizeof(encoding_type)> swapped_encoding;
+        store_integer_le(encoding_type, swapped_encoding.data());
         std::vector<uint8_t> data_to_encode =
-            encode(reinterpret_cast<const std::byte*>(&encoding_type), sizeof(encoding_type));
+            encode(swapped_encoding.data(), swapped_encoding.size());
         cs.append(data_to_encode.data(), data_to_encode.size());
         if (!out_data.empty())
             cs.append(static_cast<unsigned char *>(out_data.data()), out_data.size());
@@ -713,7 +730,7 @@ EResult GCodeBlock::read_data(FILE& file, const FileHeader& file_header, const B
 {
     const ECompressionType compression_type = (ECompressionType)block_header.compression;
 
-    if (!read_from_file(file, (void*)&encoding_type, sizeof(encoding_type)))
+    if (!read_from_file_le(file, encoding_type))
         return EResult::ReadError;
     if (encoding_type > gcode_encoding_types_count())
         return EResult::InvalidGCodeEncodingType;
@@ -722,7 +739,7 @@ EResult GCodeBlock::read_data(FILE& file, const FileHeader& file_header, const B
     const size_t data_size = (compression_type == ECompressionType::None) ? block_header.uncompressed_size : block_header.compressed_size;
     if (data_size > 0) {
         data.resize(data_size);
-        if (!read_from_file(file, (void*)data.data(), data_size))
+        if (!read_from_file(file, reinterpret_cast<std::byte*>(data.data()), data_size))
             return EResult::ReadError;
     }
 

@@ -120,7 +120,7 @@ public:
 
     // Append any aritmetic data to the checksum (shorthand for aritmetic types)
     template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
-    void append(T& data) { append(reinterpret_cast<const std::byte*>(&data), sizeof(data)); }
+    void append(T& data);
 
     // Returns true if the given checksum is equal to this one
     bool matches(Checksum& other);
@@ -166,6 +166,14 @@ void Checksum::append(const BufT *data, size_t size)
         break;
     }
     }
+}
+
+template<typename T, typename>
+void Checksum::append(T& data)
+{
+    std::array<std::byte, sizeof(T)> temp;
+    store_integer_le(data, temp.begin(), temp.size());
+    append(temp.data(), temp.size());
 }
 
 static constexpr auto MAGICi32 = load_integer<uint32_t>(std::begin(MAGIC), std::end(MAGIC));
