@@ -3,37 +3,6 @@
 
 namespace bgcode { namespace core {
 
-static bool write_to_file(FILE& file, const std::byte* data, size_t data_size)
-{
-    const size_t wsize = fwrite(static_cast<const void*>(data), 1, data_size, &file);
-    return !ferror(&file) && wsize == data_size;
-}
-
-template<class T>
-static bool write_to_file_le(FILE& file, const T &data)
-{
-    std::array<std::byte, sizeof(T)> temp;
-    store_integer_le(data, temp.begin(), temp.size());
-    return write_to_file(file, temp.data(), temp.size());
-}
-
-static bool read_from_file(FILE& file, std::byte *data, size_t data_size)
-{
-    const size_t rsize = fread(static_cast<void *>(data), 1, data_size, &file);
-    return !ferror(&file) && rsize == data_size;
-}
-
-template<class T>
-static bool read_from_file_le(FILE& file, T &data)
-{
-    std::array<std::byte, sizeof(T)> temp;
-    if (!read_from_file(file, temp.data(), temp.size())) {
-        return false;
-    }
-    data = load_integer<T>(temp.begin(), temp.end());
-    return true;
-}
-
 EResult verify_block_checksum(FILE& file, const FileHeader& file_header,
                               const BlockHeader& block_header, std::byte* buffer, size_t buffer_size)
 {

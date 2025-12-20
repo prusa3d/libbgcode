@@ -18,37 +18,6 @@ using namespace core;
 
 namespace binarize {
 
-static bool write_to_file(FILE& file, const std::byte* data, size_t data_size)
-{
-    const size_t wsize = fwrite(static_cast<const void*>(data), 1, data_size, &file);
-    return !ferror(&file) && wsize == data_size;
-}
-
-template<class T>
-static bool write_to_file_le(FILE& file, const T &data)
-{
-    std::array<std::byte, sizeof(T)> temp;
-    store_integer_le(data, temp.begin(), temp.size());
-    return write_to_file(file, temp.data(), temp.size());
-}
-
-static bool read_from_file(FILE& file, std::byte *data, size_t data_size)
-{
-    const size_t rsize = fread(static_cast<void *>(data), 1, data_size, &file);
-    return !ferror(&file) && rsize == data_size;
-}
-
-template<class T>
-static bool read_from_file_le(FILE& file, T &data)
-{
-    std::array<std::byte, sizeof(T)> temp;
-    if (!read_from_file(file, temp.data(), temp.size())) {
-        return false;
-    }
-    data = load_integer<T>(temp.begin(), temp.end());
-    return true;
-}
-
 void update_checksum(Checksum& checksum, const ThumbnailBlock &th)
 {
     checksum.append(th.params.format);
@@ -438,7 +407,7 @@ core::EResult write(const BaseMetadataBlock &block, FILE& file, core::EBlockType
     if (!write_to_file_le(file, block.encoding_type))
         return EResult::WriteError;
     if (!out_data.empty()) {
-        if (!write_to_file(file, reinterpret_cast<const std::byte*>(out_data.data()), out_data.size()))
+        if (!write_to_file(file, out_data.data(), out_data.size()))
             return EResult::WriteError;
     }
 
@@ -467,7 +436,7 @@ EResult BaseMetadataBlock::read_data(FILE& file, const BlockHeader& block_header
     const size_t data_size = (compression_type == ECompressionType::None) ? block_header.uncompressed_size : block_header.compressed_size;
     if (data_size > 0) {
         data.resize(data_size);
-        if (!read_from_file(file, reinterpret_cast<std::byte*>(data.data()), data_size))
+        if (!read_from_file(file, data.data(), data_size))
             return EResult::ReadError;
     }
 
@@ -618,7 +587,7 @@ EResult ThumbnailBlock::write(FILE& file, EChecksumType checksum_type)
         return res;
     }
 
-    if (!write_to_file(file, reinterpret_cast<const std::byte*>(data.data()), data.size()))
+    if (!write_to_file(file, data.data(), data.size()))
         return EResult::WriteError;
 
     if (checksum_type != EChecksumType::None) {
@@ -653,7 +622,7 @@ EResult ThumbnailBlock::read_data(FILE& file, const FileHeader& file_header, con
         return EResult::InvalidThumbnailDataSize;
 
     data.resize(block_header.uncompressed_size);
-    if (!read_from_file(file, reinterpret_cast<std::byte*>(data.data()), block_header.uncompressed_size))
+    if (!read_from_file(file, data.data(), block_header.uncompressed_size))
         return EResult::ReadError;
 
     const EChecksumType checksum_type = (EChecksumType)file_header.checksum_type;
@@ -701,7 +670,7 @@ EResult GCodeBlock::write(FILE& file, ECompressionType compression_type, EChecks
     if (!write_to_file_le(file, encoding_type))
         return EResult::WriteError;
     if (!out_data.empty()) {
-        if (!write_to_file(file, reinterpret_cast<const std::byte*>(out_data.data()), out_data.size()))
+        if (!write_to_file(file, out_data.data(), out_data.size()))
             return EResult::WriteError;
     }
 
@@ -739,7 +708,7 @@ EResult GCodeBlock::read_data(FILE& file, const FileHeader& file_header, const B
     const size_t data_size = (compression_type == ECompressionType::None) ? block_header.uncompressed_size : block_header.compressed_size;
     if (data_size > 0) {
         data.resize(data_size);
-        if (!read_from_file(file, reinterpret_cast<std::byte*>(data.data()), data_size))
+        if (!read_from_file(file, data.data(), data_size))
             return EResult::ReadError;
     }
 
