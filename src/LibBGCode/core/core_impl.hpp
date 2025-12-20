@@ -120,7 +120,7 @@ public:
 
     // Append any aritmetic data to the checksum (shorthand for aritmetic types)
     template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
-    void append(T& data) { append(reinterpret_cast<const std::byte*>(&data), sizeof(data)); }
+    void append(T& data);
 
     // Returns true if the given checksum is equal to this one
     bool matches(Checksum& other);
@@ -168,11 +168,52 @@ void Checksum::append(const BufT *data, size_t size)
     }
 }
 
+template<typename T, typename>
+void Checksum::append(T& data)
+{
+    std::array<std::byte, sizeof(T)> temp;
+    store_integer_le(data, temp.begin(), temp.size());
+    append(temp.data(), temp.size());
+}
+
 static constexpr auto MAGICi32 = load_integer<uint32_t>(std::begin(MAGIC), std::end(MAGIC));
 
 constexpr auto checksum_types_count() noexcept { auto v = to_underlying(EChecksumType::CRC32); ++v; return v;}
 constexpr auto block_types_count() noexcept { auto v = to_underlying(EBlockType::Thumbnail); ++v; return v; }
 constexpr auto compression_types_count() noexcept { auto v = to_underlying(ECompressionType::Heatshrink_12_4); ++v; return v; }
+
+template<class BufT>
+static bool write_to_file(FILE& file, const BufT* data, size_t data_size)
+{
+    const size_t wsize = fwrite(static_cast<const void*>(data), 1, data_size, &file);
+    return !ferror(&file) && wsize == data_size;
+}
+
+template<class T>
+static bool write_to_file_le(FILE& file, const T &data)
+{
+    std::array<std::byte, sizeof(T)> temp;
+    store_integer_le(data, temp.begin(), temp.size());
+    return write_to_file(file, temp.data(), temp.size());
+}
+
+template<class BufT>
+static bool read_from_file(FILE& file, BufT *data, size_t data_size)
+{
+    const size_t rsize = fread(static_cast<BufT *>(data), 1, data_size, &file);
+    return !ferror(&file) && rsize == data_size;
+}
+
+template<class T>
+static bool read_from_file_le(FILE& file, T &data)
+{
+    std::array<std::byte, sizeof(T)> temp;
+    if (!read_from_file(file, temp.data(), temp.size())) {
+        return false;
+    }
+    data = load_integer<T>(temp.begin(), temp.end());
+    return true;
+}
 
 } // namespace core
 } // namespace bgcode
