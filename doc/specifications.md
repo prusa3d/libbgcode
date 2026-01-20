@@ -76,7 +76,7 @@ Block parameters are used to let readers be able to interpret the block data.
 Each block type may define its own parameters, so the size in bytes may vary.
 
 ### Block data
-Block data content is described by the block paramenters.
+Block data content is described by the block parameters.
 
 The size in bytes of the block data is defined in the block header.
 For `Compression` = **0** it is `Uncompressed size`, otherwise it is `Compressed size`.
