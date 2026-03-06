@@ -194,7 +194,7 @@ jobs:
         path: ${{github.workspace}}/build/dist/lib/wasm/
 
   build-msvc:
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     strategy:
       matrix:
