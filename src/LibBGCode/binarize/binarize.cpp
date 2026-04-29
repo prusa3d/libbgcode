@@ -72,7 +72,7 @@ static bool block_sizes_within_limit(const BlockHeader& block_header)
 }
 
 static uint16_t metadata_encoding_types_count() { return 1 + (uint16_t)EMetadataEncodingType::JSON; }
-static uint16_t thumbnail_formats_count()       { return 1 + (uint16_t)EThumbnailFormat::QOI; }
+static uint16_t thumbnail_formats_count()       { return 1 + (uint16_t)EThumbnailFormat::GLTF; }
 static uint16_t gcode_encoding_types_count()    { return 1 + (uint16_t)EGCodeEncodingType::MeatPackComments; }
 
 static bool encode_metadata(const std::vector<std::pair<std::string, std::string>>& src, std::vector<uint8_t>& dst,
@@ -744,9 +744,9 @@ EResult ThumbnailBlock::write(FILE& file, EChecksumType checksum_type)
 {
     if (params.format >= thumbnail_formats_count())
         return EResult::InvalidThumbnailFormat;
-    if (params.width == 0)
+    if (EThumbnailFormat(params.format) == EThumbnailFormat::GLTF ? (params.width != 0) : (params.width == 0))
         return EResult::InvalidThumbnailWidth;
-    if (params.height == 0)
+    if (EThumbnailFormat(params.format) == EThumbnailFormat::GLTF ? (params.height != 0) : (params.height == 0))
         return EResult::InvalidThumbnailHeight;
     if (data.size() == 0)
         return EResult::InvalidThumbnailDataSize;
@@ -791,9 +791,9 @@ EResult ThumbnailBlock::read_data(FILE& file, const FileHeader& file_header, con
         return res;
     if (params.format >= thumbnail_formats_count())
         return EResult::InvalidThumbnailFormat;
-    if (params.width == 0)
+    if (EThumbnailFormat(params.format) == EThumbnailFormat::GLTF ? (params.width != 0) : (params.width == 0))
         return EResult::InvalidThumbnailWidth;
-    if (params.height == 0)
+    if (EThumbnailFormat(params.format) == EThumbnailFormat::GLTF ? (params.height != 0) : (params.height == 0))
         return EResult::InvalidThumbnailHeight;
     if (block_header.uncompressed_size == 0)
         return EResult::InvalidThumbnailDataSize;
