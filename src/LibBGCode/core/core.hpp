@@ -91,7 +91,7 @@ enum class EThumbnailFormat : uint16_t
     PNG,
     JPG,
     QOI,
-    GLTF
+    GLB
 };
 
 struct BGCODE_CORE_EXPORT FileHeader

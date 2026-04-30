@@ -81,7 +81,7 @@ static std::string thumbnail_format_as_string(EThumbnailFormat type)
     case EThumbnailFormat::JPG: { return "JPG"; }
     case EThumbnailFormat::PNG: { return "PNG"; }
     case EThumbnailFormat::QOI: { return "QOI"; }
-    case EThumbnailFormat::GLTF: { return "GLTF"; }
+    case EThumbnailFormat::GLB: { return "GLB"; }
     }
     return "";
 };
