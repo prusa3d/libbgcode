@@ -350,8 +350,8 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
     static constexpr const std::string_view ThumbnailJPGEnd   = "thumbnail_JPG end"sv;
     static constexpr const std::string_view ThumbnailQOIBegin = "thumbnail_QOI begin"sv;
     static constexpr const std::string_view ThumbnailQOIEnd   = "thumbnail_QOI end"sv;
-    static constexpr const std::string_view ThumbnailGLTFBegin = "thumbnail_GLTF begin"sv;
-    static constexpr const std::string_view ThumbnailGLTFEnd   = "thumbnail_GLTF end"sv;
+    static constexpr const std::string_view ThumbnailGLBBegin = "thumbnail_GLB begin"sv;
+    static constexpr const std::string_view ThumbnailGLBEnd   = "thumbnail_GLB end"sv;
 
     static constexpr const std::string_view PrusaSlicerConfig = "prusaslicer_config"sv;
     static constexpr const std::string_view PrusaSlicerConfigJson = "prusaslicer_json_config"sv;
@@ -558,9 +558,9 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
                 reading_thumbnail = EThumbnailFormat::QOI;
                 sv_thumbnail_str = trim(sv_line.substr(ThumbnailQOIBegin.size()));
             }
-            else if (sv_line.find(ThumbnailGLTFBegin) == 0) {
-                reading_thumbnail = EThumbnailFormat::GLTF;
-                sv_thumbnail_str = trim(sv_line.substr(ThumbnailGLTFBegin.size()));
+            else if (sv_line.find(ThumbnailGLBBegin) == 0) {
+                reading_thumbnail = EThumbnailFormat::GLB;
+                sv_thumbnail_str = trim(sv_line.substr(ThumbnailGLBBegin.size()));
             }
             if (reading_thumbnail.has_value()) {
                 ThumbnailBlock& thumbnail = binary_data.thumbnails.emplace_back(ThumbnailBlock());
@@ -572,8 +572,8 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
                 }
                 const std::string_view sv_rect_str = trim(sv_thumbnail_str.substr(0, pos));
                 std::pair<uint16_t, uint16_t> rect = extract_thumbnail_rect(sv_rect_str);
-                const bool is_gltf = *reading_thumbnail == EThumbnailFormat::GLTF;
-                if (is_gltf ? (rect.first != 0 || rect.second != 0) : (rect.first == 0 || rect.second == 0)) {
+                const bool is_glb = *reading_thumbnail == EThumbnailFormat::GLB;
+                if (is_glb ? (rect.first != 0 || rect.second != 0) : (rect.first == 0 || rect.second == 0)) {
                     parse_res = EResult::InvalidAsciiGCodeFile;
                     return;
                 }
@@ -616,8 +616,8 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
                 }
                 thumbnail_end = true;
             }
-            else if (sv_line.find(ThumbnailGLTFEnd) == 0) {
-                if (*reading_thumbnail != EThumbnailFormat::GLTF) {
+            else if (sv_line.find(ThumbnailGLBEnd) == 0) {
+                if (*reading_thumbnail != EThumbnailFormat::GLB) {
                     parse_res = EResult::InvalidAsciiGCodeFile;
                     return;
                 }
@@ -882,7 +882,7 @@ BGCODE_CONVERT_EXPORT EResult from_binary_to_ascii(FILE& src_file, FILE& dst_fil
         case EThumbnailFormat::PNG: { format = "thumbnail"; break; }
         case EThumbnailFormat::JPG: { format = "thumbnail_JPG"; break; }
         case EThumbnailFormat::QOI: { format = "thumbnail_QOI"; break; }
-        case EThumbnailFormat::GLTF: { format = "thumbnail_GLTF"; break; }
+        case EThumbnailFormat::GLB: { format = "thumbnail_GLB"; break; }
         }
         if (!write_line("\n;\n; " + format + " begin " + std::to_string(thumbnail_block.params.width) + "x" + std::to_string(thumbnail_block.params.height) +
             " " + std::to_string(encoded.length()) + "\n"))

@@ -50,7 +50,7 @@ static std::vector<uint8_t> encode(const std::byte* data, size_t data_size)
 }
 
 static uint16_t metadata_encoding_types_count() { return 1 + (uint16_t)EMetadataEncodingType::JSON; }
-static uint16_t thumbnail_formats_count()       { return 1 + (uint16_t)EThumbnailFormat::GLTF; }
+static uint16_t thumbnail_formats_count()       { return 1 + (uint16_t)EThumbnailFormat::GLB; }
 static uint16_t gcode_encoding_types_count()    { return 1 + (uint16_t)EGCodeEncodingType::MeatPackComments; }
 
 static bool encode_metadata(const std::vector<std::pair<std::string, std::string>>& src, std::vector<uint8_t>& dst,
@@ -599,9 +599,9 @@ EResult ThumbnailBlock::write(FILE& file, EChecksumType checksum_type)
 {
     if (params.format >= thumbnail_formats_count())
         return EResult::InvalidThumbnailFormat;
-    if (EThumbnailFormat(params.format) == EThumbnailFormat::GLTF ? (params.width != 0) : (params.width == 0))
+    if (EThumbnailFormat(params.format) == EThumbnailFormat::GLB ? (params.width != 0) : (params.width == 0))
         return EResult::InvalidThumbnailWidth;
-    if (EThumbnailFormat(params.format) == EThumbnailFormat::GLTF ? (params.height != 0) : (params.height == 0))
+    if (EThumbnailFormat(params.format) == EThumbnailFormat::GLB ? (params.height != 0) : (params.height == 0))
         return EResult::InvalidThumbnailHeight;
     if (data.size() == 0)
         return EResult::InvalidThumbnailDataSize;
@@ -646,9 +646,9 @@ EResult ThumbnailBlock::read_data(FILE& file, const FileHeader& file_header, con
         return res;
     if (params.format >= thumbnail_formats_count())
         return EResult::InvalidThumbnailFormat;
-    if (EThumbnailFormat(params.format) == EThumbnailFormat::GLTF ? (params.width != 0) : (params.width == 0))
+    if (EThumbnailFormat(params.format) == EThumbnailFormat::GLB ? (params.width != 0) : (params.width == 0))
         return EResult::InvalidThumbnailWidth;
-    if (EThumbnailFormat(params.format) == EThumbnailFormat::GLTF ? (params.height != 0) : (params.height == 0))
+    if (EThumbnailFormat(params.format) == EThumbnailFormat::GLB ? (params.height != 0) : (params.height == 0))
         return EResult::InvalidThumbnailHeight;
     if (block_header.uncompressed_size == 0)
         return EResult::InvalidThumbnailDataSize;
