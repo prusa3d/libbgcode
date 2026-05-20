@@ -57,6 +57,12 @@ static std::string_view trim(const std::string_view& str)
         return std::string_view(&str[start], end - start + 1);
 }
 
+static std::string_view ltrim(const std::string_view& str)
+{
+    const size_t start = str.find_first_not_of(" \t");
+    return start == std::string_view::npos ? std::string_view() : str.substr(start);
+}
+
 MPBinarizer::LookupTables MPBinarizer::s_lookup_tables = { { 0 }, { 0 }, false, 0 };
 
 MPBinarizer::MPBinarizer(uint8_t flags) : m_flags(flags) {}
@@ -131,8 +137,10 @@ void MPBinarizer::binarize_line(const std::string& line, std::vector<uint8_t>& d
     };
 
     if (!line.empty()) {
+        const std::string_view trimmed_line = ltrim(line);
+
         if ((m_flags & Flag_RemoveComments) == 0) {
-            if (line[0] == ';') {
+            if (!trimmed_line.empty() && trimmed_line[0] == ';') {
                 if (m_binarizing) {
                     append_command(Command_DisablePacking, dst);
                     m_binarizing = false;
@@ -143,9 +151,10 @@ void MPBinarizer::binarize_line(const std::string& line, std::vector<uint8_t>& d
             }
         }
 
-        if (line[0] == ';' ||
-            line[0] == '\n' ||
-            line[0] == '\r' ||
+        if (trimmed_line.empty() ||
+            trimmed_line[0] == ';' ||
+            trimmed_line[0] == '\n' ||
+            trimmed_line[0] == '\r' ||
             line.size() < 2)
             return;
 
