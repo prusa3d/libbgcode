@@ -9,3 +9,4 @@ Testing
 .py-build*
 __pycache__
 venv
+**/.idea/
