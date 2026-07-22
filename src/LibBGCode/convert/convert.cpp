@@ -573,6 +573,7 @@ BGCODE_CONVERT_EXPORT EResult from_ascii_to_binary(FILE& src_file, FILE& dst_fil
     append_metadata(binary_data.printer_metadata.raw_data, std::string(EstimatedPrintingTimeNormal), estimated_printing_time_normal);
     append_metadata(binary_data.printer_metadata.raw_data, std::string(EstimatedPrintingTimeSilent), estimated_printing_time_silent);
     append_metadata(binary_data.printer_metadata.raw_data, std::string(TotalFilamentUsedWipeTower),  total_filament_used_wipe_tower);
+    append_metadata(binary_data.printer_metadata.raw_data, std::string(TotalToolChanges),            total_tool_changes);
     append_metadata(binary_data.printer_metadata.raw_data, std::string(ObjectsInfo),                 objects_info);
 
     // update print metadata
