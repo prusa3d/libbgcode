@@ -74,6 +74,11 @@ if (PY_BUILD_CMAKE_MODULE_NAME)
     endif()
 endif ()
 
+# Install orcabgcode module into the wheel
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../orcabgcode
+        COMPONENT python_modules
+        DESTINATION .)
+
 enable_testing()
 
 set (TEST_DATA_DIR ${CMAKE_CURRENT_LIST_DIR}/../tests/data)

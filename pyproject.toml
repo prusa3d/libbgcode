@@ -26,7 +26,7 @@ build-backend = "py_build_cmake.build"
 directory = "pybgcode/"
 
 [tool.py-build-cmake.sdist] # What to include in source distributions
-include = [ "pybgcode/*", "src/*" , "deps/*", "deps/build.cmake", "cmake/*", "CMakeLists.txt", "CMakePresets.json"]
+include = [ "pybgcode/*", "orcabgcode/*", "src/*" , "deps/*", "deps/build.cmake", "cmake/*", "CMakeLists.txt", "CMakePresets.json"]
 exclude = [".gitignore", ".git/", ".github/", "deps/build*", "build*", "CMakeLists.txt.user", "*.bak"]
 
 [tool.py-build-cmake.cmake] # How to build the CMake project
