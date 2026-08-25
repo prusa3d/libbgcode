@@ -40,3 +40,8 @@ build_args = ["--target", "build_and_test"]
 # preset = "python-module"
 # build_presets = ["python-module"]
 # build_path = "build"
+
+[tool.orcaslicer.plugin]
+name = "Sample Plugin"
+description = "Appends a short build-environment note to the exported G-code."
+author = "Your Name"

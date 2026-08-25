@@ -6,7 +6,6 @@
   "customizations": {
     "vscode": {
       "settings": {
-        "cmake.configureOnOpen": true,
         "cmake.generator": "Ninja",
         "cmake.buildDirectory": "${workspaceFolder}/build",
         "C_Cpp.default.cppStandard": "c++17",
@@ -16,8 +15,7 @@
       "extensions": [
         "ms-vscode.cpptools",
         "ms-vscode.cmake-tools",
-        "ms-python.python",
-        "ms-python.vscode-pylance"
+        "ms-python.python"
       ]
     }
   },
