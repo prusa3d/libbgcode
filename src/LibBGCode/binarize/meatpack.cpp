@@ -106,7 +106,9 @@ void MPBinarizer::binarize_line(const std::string& line, std::vector<uint8_t>& d
                     }
                     result += "*" + std::to_string(checksum);
                 }
-                result += '\n';
+                if(result.back() != '\n') {
+                    result += '\n';
+                }
                 return result;
             }
         }
