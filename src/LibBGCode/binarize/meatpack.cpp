@@ -91,39 +91,23 @@ void MPBinarizer::binarize_line(const std::string& line, std::vector<uint8_t>& d
         const std::string::size_type g_idx = line.find('G');
         if (g_idx != std::string::npos) {
             if (g_idx + 1 < line.size() && line[g_idx + 1] >= '0' && line[g_idx + 1] <= '9') {
-                if ((m_flags & Flag_OmitWhitespaces) != 0) {
-                    std::string result = line;
+                std::string result = line;
+                if((m_flags & Flag_OmitWhitespaces) != 0) { 
                     std::replace(result.begin(), result.end(), 'e', 'E');
-                    std::replace(result.begin(), result.end(), 'x', 'X');
-                    std::replace(result.begin(), result.end(), 'g', 'G');
-                    result.erase(std::remove(result.begin(), result.end(), ' '), result.end());
-                    if (result.find('*') != std::string::npos) {
-                        size_t checksum = 0;
-                        result.erase(std::remove(result.begin(), result.end(), '*'), result.end());
-                        for (size_t i = 0; i < result.size(); ++i) {
-                            checksum ^= static_cast<uint8_t>(result[i]);
-                        }
-                        result += "*" + std::to_string(checksum);
-                    }
-                    result += '\n';
-                    return result;
                 }
-                else {
-                    std::string result = line;
-                    std::replace(result.begin(), result.end(), 'x', 'X');
-                    std::replace(result.begin(), result.end(), 'g', 'G');
-                    result.erase(std::remove(result.begin(), result.end(), ' '), result.end());
-                    if (result.find('*') != std::string::npos) {
-                        size_t checksum = 0;
-                        result.erase(std::remove(result.begin(), result.end(), '*'), result.end());
-                        for (size_t i = 0; i < result.size(); ++i) {
-                            checksum ^= static_cast<uint8_t>(result[i]);
-                        }
-                        result += "*" + std::to_string(checksum);
+                std::replace(result.begin(), result.end(), 'x', 'X');
+                std::replace(result.begin(), result.end(), 'g', 'G');
+                result.erase(std::remove(result.begin(), result.end(), ' '), result.end());
+                if (result.find('*') != std::string::npos) {
+                    size_t checksum = 0;
+                    result.erase(std::remove(result.begin(), result.end(), '*'), result.end());
+                    for (size_t i = 0; i < result.size(); ++i) {
+                        checksum ^= static_cast<uint8_t>(result[i]);
                     }
-                    result += '\n';
-                    return result;
+                    result += "*" + std::to_string(checksum);
                 }
+                result += '\n';
+                return result;
             }
         }
         return line;
