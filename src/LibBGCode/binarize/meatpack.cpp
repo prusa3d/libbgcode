@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <cassert>
+#include <charconv>
 #include <cstdlib>
 
 namespace MeatPack {
@@ -64,6 +65,49 @@ static std::string_view ltrim(const std::string_view& str)
     return start == std::string_view::npos ? std::string_view() : str.substr(start);
 }
 
+static std::string compact_gcode_line_for_packing(const std::string& line, bool uppercase_e)
+{
+    std::string result = line;
+    if (uppercase_e) {
+        std::replace(result.begin(), result.end(), 'e', 'E');
+    }
+
+    std::replace(result.begin(), result.end(), 'x', 'X');
+    std::replace(result.begin(), result.end(), 'g', 'G');
+    result.erase(std::remove(result.begin(), result.end(), ' '), result.end());
+    if (result.find('*') != std::string::npos) {
+        size_t checksum = 0;
+        result.erase(std::remove(result.begin(), result.end(), '*'), result.end());
+        for (const char line_char : result) {
+            checksum ^= static_cast<uint8_t>(line_char);
+        }
+
+        result += "*" + std::to_string(checksum);
+    }
+
+    result += '\n';
+    return result;
+}
+
+// Only G0 to G3 lines are compacted because the decoder reliably reinserts spaces only before their parameters.
+static std::string compact_gcode_line_if_it_contains_g_command(const std::string& line, bool uppercase_e)
+{
+    const std::string::size_type g_idx = line.find('G');
+    if (g_idx != std::string::npos) {
+        if (g_idx + 1 < line.size() && line[g_idx + 1] >= '0' && line[g_idx + 1] <= '9') {
+            int gcode_number = 0;
+            const std::from_chars_result gcode_number_result =
+                std::from_chars(line.data() + g_idx + 1, line.data() + line.size(), gcode_number);
+            const bool is_g0_to_g3_line = g_idx == 0 && gcode_number_result.ec == std::errc() && gcode_number <= 3;
+            if (is_g0_to_g3_line) {
+                return compact_gcode_line_for_packing(line, uppercase_e);
+            }
+        }
+    }
+
+    return line;
+}
+
 MPBinarizer::LookupTables MPBinarizer::s_lookup_tables = { { 0 }, { 0 }, false, 0 };
 
 MPBinarizer::MPBinarizer(uint8_t flags) : m_flags(flags) {}
@@ -88,47 +132,6 @@ void MPBinarizer::finalize(std::vector<uint8_t>& dst)
 
 bool MPBinarizer::binarize_line(const std::string& line, std::vector<uint8_t>& dst)
 {
-    auto unified_method = [this](const std::string& line) {
-        const std::string::size_type g_idx = line.find('G');
-        if (g_idx != std::string::npos) {
-            if (g_idx + 1 < line.size() && line[g_idx + 1] >= '0' && line[g_idx + 1] <= '9') {
-                if ((m_flags & Flag_OmitWhitespaces) != 0) {
-                    std::string result = line;
-                    std::replace(result.begin(), result.end(), 'e', 'E');
-                    std::replace(result.begin(), result.end(), 'x', 'X');
-                    std::replace(result.begin(), result.end(), 'g', 'G');
-                    result.erase(std::remove(result.begin(), result.end(), ' '), result.end());
-                    if (result.find('*') != std::string::npos) {
-                        size_t checksum = 0;
-                        result.erase(std::remove(result.begin(), result.end(), '*'), result.end());
-                        for (size_t i = 0; i < result.size(); ++i) {
-                            checksum ^= static_cast<uint8_t>(result[i]);
-                        }
-                        result += "*" + std::to_string(checksum);
-                    }
-                    result += '\n';
-                    return result;
-                }
-                else {
-                    std::string result = line;
-                    std::replace(result.begin(), result.end(), 'x', 'X');
-                    std::replace(result.begin(), result.end(), 'g', 'G');
-                    result.erase(std::remove(result.begin(), result.end(), ' '), result.end());
-                    if (result.find('*') != std::string::npos) {
-                        size_t checksum = 0;
-                        result.erase(std::remove(result.begin(), result.end(), '*'), result.end());
-                        for (size_t i = 0; i < result.size(); ++i) {
-                            checksum ^= static_cast<uint8_t>(result[i]);
-                        }
-                        result += "*" + std::to_string(checksum);
-                    }
-                    result += '\n';
-                    return result;
-                }
-            }
-        }
-        return line;
-    };
     auto is_packable = [](char c) {
         return (s_lookup_tables.packable[static_cast<uint8_t>(c)] != 0);
     };
@@ -164,11 +167,15 @@ bool MPBinarizer::binarize_line(const std::string& line, std::vector<uint8_t>& d
             return true;
 
         std::string modifiedLine = std::string(trim(std::string_view(line.substr(0, line.find(';')))));
-        if (modifiedLine.empty())
+        if (modifiedLine.empty()) {
             return true;
-        modifiedLine = unified_method(modifiedLine);
-        if (modifiedLine.back() != '\n')
+        }
+
+        modifiedLine = compact_gcode_line_if_it_contains_g_command(modifiedLine, (m_flags & Flag_OmitWhitespaces) != 0);
+        if (modifiedLine.back() != '\n') {
             modifiedLine.push_back('\n');
+        }
+
         // 0xFF is the decoder's signal byte; it cannot be represented in the packed output.
         if (modifiedLine.find('\xff') != std::string::npos)
             return false;
@@ -429,18 +436,19 @@ void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
             if (c_unbin[i] == 'G' && (curr_unbin_buffer_length == 0 || *std::prev(it_unbin_end, 1) == '\n')) {
                 add_space = true;
                 new_line = true;
-            }
-            else if (c_unbin[i] == '\n')
+            } else if (c_unbin[i] == '\n' || c_unbin[i] == ' ') {
+                // A line containing a space was stored unchanged by the encoder.
                 add_space = false;
+            }
 
-            if (!new_line && add_space && (curr_unbin_buffer_length == 0 || *std::prev(it_unbin_end, 1) != ' ') &&
-                is_gline_parameter(c_unbin[i])) {
+            if (!new_line && add_space && is_gline_parameter(c_unbin[i])) {
                 *it_unbin_end = ' ';
                 ++it_unbin_end;
                 if (it_unbin_end == unbin_buffer.end()) {
                     // the buffer is not big enough, resize it
-                    unbin_buffer.resize(2 * unbin_buffer.size(), 0);
-                    it_unbin_end = unbin_buffer.begin() + curr_unbin_buffer_length + 1;
+                    const size_t unbin_buffer_length = unbin_buffer.size();
+                    unbin_buffer.resize(2 * unbin_buffer_length, 0);
+                    it_unbin_end = unbin_buffer.begin() + unbin_buffer_length;
                 }
             }
 
@@ -449,8 +457,9 @@ void unbinarize(const std::vector<uint8_t>& src, std::string& dst)
                 ++it_unbin_end;
                 if (it_unbin_end == unbin_buffer.end()) {
                     // the buffer is not big enough, resize it
-                    unbin_buffer.resize(2 * unbin_buffer.size(), 0);
-                    it_unbin_end = unbin_buffer.begin() + curr_unbin_buffer_length + 1;
+                    const size_t unbin_buffer_length = unbin_buffer.size();
+                    unbin_buffer.resize(2 * unbin_buffer_length, 0);
+                    it_unbin_end = unbin_buffer.begin() + unbin_buffer_length;
                 }
             }
         }
