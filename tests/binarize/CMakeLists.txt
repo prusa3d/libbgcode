@@ -5,6 +5,7 @@ add_executable(binarize_tests
     heatshrink_roundtrip_tests.cpp
     meatpack_encode_tests.cpp
     meatpack_overflow_tests.cpp
+    meatpack_whitespace_tests.cpp
     metadata_iterator_tests.cpp
 )
 

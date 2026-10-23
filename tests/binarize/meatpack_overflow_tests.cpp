@@ -54,3 +54,26 @@ TEST_CASE("reading a crafted MeatPack gcode block stays in bounds", "[Binarize][
 
     REQUIRE((result == EResult::Success || result == EResult::GCodeDecodingError));
 }
+
+TEST_CASE("Unbinarize keeps the parameter letter after a reinserted space when its output buffer grows", "[Binarize][MeatPack]") {
+    const std::string gcode_line = "G1 X10.5 E1.25\n";
+    for (size_t line_count = 1; line_count <= 64; ++line_count) {
+        CAPTURE(line_count);
+
+        MeatPack::MPBinarizer binarizer(MeatPack::Flag_OmitWhitespaces);
+        std::vector<uint8_t> binarized_data;
+        binarizer.initialize(binarized_data);
+
+        std::string gcode;
+        for (size_t i = 0; i < line_count; ++i) {
+            REQUIRE(binarizer.binarize_line(gcode_line, binarized_data));
+            gcode += gcode_line;
+        }
+
+        binarizer.finalize(binarized_data);
+
+        std::string out;
+        unbinarize(binarized_data, out);
+        CHECK(out == gcode);
+    }
+}
