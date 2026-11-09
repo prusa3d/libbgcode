@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <string>
 #include <utility>
+#include <iterator>
 
 #include <emscripten/emscripten.h>
 #include <emscripten/bind.h>
